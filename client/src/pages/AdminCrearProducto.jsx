@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const categorias = [
   'Aparadores',
@@ -9,9 +10,255 @@ const categorias = [
   'Sillones',
 ];
 
-function AdminCrearProducto() {
-  const handleSubmit = (event) => {
+const formularioInicial = {
+  nombre: '',
+  descripcion: '',
+  precio: '',
+  stock: '',
+  imagenUrl: '',
+  categoria: '',
+  destacado: false,
+};
+
+const erroresIniciales = {
+  nombre: '',
+  precio: '',
+  stock: '',
+  especificaciones: '',
+};
+
+function AdminCrearProducto({ onProductoCreado }) {
+  const navigate = useNavigate();
+  const redireccionRef = useRef(null);
+  const [formData, setFormData] = useState(formularioInicial);
+  const [especificaciones, setEspecificaciones] = useState([]);
+  const [errores, setErrores] = useState(erroresIniciales);
+  const [erroresEspecificaciones, setErroresEspecificaciones] = useState([]);
+  const [estado, setEstado] = useState(null);
+  const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => () => {
+    if (redireccionRef.current) clearTimeout(redireccionRef.current);
+  }, []);
+
+  const limpiarFormulario = () => {
+    setFormData(formularioInicial);
+    setEspecificaciones([]);
+    setErrores(erroresIniciales);
+    setErroresEspecificaciones([]);
+  };
+
+  const handleChange = (event) => {
+    const { name, type, value, checked } = event.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+
+    if (errores[name]) {
+      setErrores((prev) => ({ ...prev, [name]: '' }));
+    }
+
+    if (estado) setEstado(null);
+  };
+
+  const handleEspecificacionChange = (index, campo, valor) => {
+    setEspecificaciones((prev) =>
+      prev.map((especificacion, posicion) =>
+        posicion === index ? { ...especificacion, [campo]: valor } : especificacion
+      )
+    );
+
+    setErroresEspecificaciones((prev) =>
+      prev.map((error, posicion) =>
+        posicion === index ? { ...error, [campo]: '' } : error
+      )
+    );
+
+    setErrores((prev) =>
+      prev.especificaciones ? { ...prev, especificaciones: '' } : prev
+    );
+
+    if (estado) setEstado(null);
+  };
+
+  const agregarEspecificacion = () => {
+    setEspecificaciones((prev) => [...prev, { label: '', value: '' }]);
+    setErroresEspecificaciones((prev) => [...prev, { label: '', value: '' }]);
+    if (estado) setEstado(null);
+  };
+
+  const quitarEspecificacion = (index) => {
+    setEspecificaciones((prev) =>
+      prev.filter((_, posicion) => posicion !== index)
+    );
+    setErroresEspecificaciones((prev) =>
+      prev.filter((_, posicion) => posicion !== index)
+    );
+    setErrores((prev) =>
+      prev.especificaciones ? { ...prev, especificaciones: '' } : prev
+    );
+    if (estado) setEstado(null);
+  };
+
+  const validarFormulario = () => {
+    const nuevosErrores = { ...erroresIniciales };
+    const nuevosErroresEspecificaciones = especificaciones.map(() => ({
+      label: '',
+      value: '',
+    }));
+
+    if (!formData.nombre.trim()) {
+      nuevosErrores.nombre = 'El nombre es obligatorio.';
+    }
+
+    const precioTexto = formData.precio.trim();
+    let precioNumero = null;
+
+    if (!precioTexto) {
+      nuevosErrores.precio = 'El precio es obligatorio.';
+    } else {
+      precioNumero = Number(precioTexto);
+      if (!Number.isFinite(precioNumero)) {
+        nuevosErrores.precio = 'Ingresá un precio válido.';
+      } else if (precioNumero < 0) {
+        nuevosErrores.precio = 'El precio debe ser mayor o igual a cero.';
+      }
+    }
+
+    const stockTexto = formData.stock.trim();
+    let stockNumero = null;
+
+    if (!stockTexto) {
+      nuevosErrores.stock = 'El stock es obligatorio.';
+    } else {
+      stockNumero = Number(stockTexto);
+      if (!Number.isFinite(stockNumero) || !Number.isInteger(stockNumero)) {
+        nuevosErrores.stock = 'El stock debe ser un número entero.';
+      } else if (stockNumero < 0) {
+        nuevosErrores.stock = 'El stock debe ser mayor o igual a cero.';
+      }
+    }
+
+    especificaciones.forEach((especificacion, index) => {
+      if (!especificacion.label.trim()) {
+        nuevosErroresEspecificaciones[index].label = 'Completá la etiqueta.';
+      }
+      if (!especificacion.value.trim()) {
+        nuevosErroresEspecificaciones[index].value = 'Completá el valor.';
+      }
+    });
+
+    const hayErroresEspecificaciones = nuevosErroresEspecificaciones.some(
+      (error) => error.label || error.value
+    );
+
+    if (hayErroresEspecificaciones) {
+      nuevosErrores.especificaciones =
+        'Completá etiqueta y valor en todas las especificaciones.';
+    }
+
+    const hayErrores =
+      Object.values(nuevosErrores).some(Boolean) || hayErroresEspecificaciones;
+
+    setErrores(nuevosErrores);
+    setErroresEspecificaciones(nuevosErroresEspecificaciones);
+
+    if (hayErrores) {
+      setEstado({
+        tipo: 'error',
+        texto: 'Revisá los campos marcados antes de guardar el producto.',
+      });
+      return null;
+    }
+
+    return {
+      precio: precioNumero,
+      stock: stockNumero,
+    };
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    if (enviando) return;
+
+    const valoresValidados = validarFormulario();
+    if (!valoresValidados) return;
+
+    setEstado(null);
+    setEnviando(true);
+
+    const payload = {
+      nombre: formData.nombre.trim(),
+      descripcion: formData.descripcion.trim(),
+      precio: valoresValidados.precio,
+      stock: valoresValidados.stock,
+      imagenUrl: formData.imagenUrl.trim(),
+      destacado: formData.destacado,
+    };
+
+    if (formData.categoria.trim()) {
+      payload.categoria = formData.categoria.trim();
+    }
+
+    if (especificaciones.length > 0) {
+      payload.especificaciones = especificaciones.map((especificacion) => ({
+        label: especificacion.label.trim(),
+        value: especificacion.value.trim(),
+      }));
+    }
+
+    try {
+      const respuesta = await fetch('/api/productos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!respuesta.ok) {
+        let datosError = null;
+        try {
+          datosError = await respuesta.json();
+        } catch {
+          datosError = null;
+        }
+
+        const detalles = Array.isArray(datosError?.errors)
+          ? ` ${datosError.errors.join(' ')}`
+          : '';
+        throw new Error(
+          datosError?.message
+            ? `${datosError.message}${detalles}`
+            : 'El servidor rechazó la creación del producto.'
+        );
+      }
+
+      const productoCreado = await respuesta.json();
+
+      limpiarFormulario();
+      if (onProductoCreado) onProductoCreado(productoCreado);
+      setEstado({
+        tipo: 'exito',
+        texto: 'Producto creado correctamente. Volviendo al catálogo...',
+      });
+
+      redireccionRef.current = setTimeout(() => {
+        navigate('/productos');
+      }, 900);
+    } catch (error) {
+      setEstado({
+        tipo: 'error',
+        texto:
+          error instanceof TypeError
+            ? 'No pudimos conectar con el servidor. Verificá que esté activo e intentá nuevamente.'
+            : error.message,
+      });
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
@@ -23,32 +270,90 @@ function AdminCrearProducto() {
       </section>
 
       <section className="contact-section admin-section">
-        <form className="contact-form admin-form" onSubmit={handleSubmit}>
+        <form
+          className="contact-form admin-form"
+          onSubmit={handleSubmit}
+          noValidate
+          aria-busy={enviando}
+        >
           <div className="admin-form-heading">
             <p className="eyebrow">NUEVA PIEZA</p>
             <h2>Datos del producto</h2>
           </div>
 
           <label htmlFor="nombre">Nombre</label>
-          <input id="nombre" name="nombre" type="text" required />
+          <input
+            id="nombre"
+            name="nombre"
+            type="text"
+            value={formData.nombre}
+            onChange={handleChange}
+            disabled={enviando}
+            aria-invalid={Boolean(errores.nombre)}
+            aria-describedby={errores.nombre ? 'nombre-error' : undefined}
+          />
+          {errores.nombre && (
+            <p id="nombre-error" className="field-error">{errores.nombre}</p>
+          )}
 
           <label htmlFor="descripcion">Descripción</label>
-          <textarea id="descripcion" name="descripcion" rows={5} required />
+          <textarea
+            id="descripcion"
+            name="descripcion"
+            rows={5}
+            value={formData.descripcion}
+            onChange={handleChange}
+            disabled={enviando}
+          />
 
           <div className="admin-form-row">
             <div>
               <label htmlFor="precio">Precio</label>
-              <input id="precio" name="precio" type="number" min="0" step="1" required />
+              <input
+                id="precio"
+                name="precio"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.precio}
+                onChange={handleChange}
+                disabled={enviando}
+                aria-invalid={Boolean(errores.precio)}
+                aria-describedby={errores.precio ? 'precio-error' : undefined}
+              />
+              {errores.precio && (
+                <p id="precio-error" className="field-error">{errores.precio}</p>
+              )}
             </div>
             <div>
               <label htmlFor="stock">Stock</label>
-              <input id="stock" name="stock" type="number" min="0" step="1" required />
+              <input
+                id="stock"
+                name="stock"
+                type="number"
+                min="0"
+                step="1"
+                value={formData.stock}
+                onChange={handleChange}
+                disabled={enviando}
+                aria-invalid={Boolean(errores.stock)}
+                aria-describedby={errores.stock ? 'stock-error' : undefined}
+              />
+              {errores.stock && (
+                <p id="stock-error" className="field-error">{errores.stock}</p>
+              )}
             </div>
           </div>
 
           <label htmlFor="categoria">Categoría</label>
-          <select id="categoria" name="categoria" defaultValue="" required>
-            <option value="" disabled>Seleccionar categoría</option>
+          <select
+            id="categoria"
+            name="categoria"
+            value={formData.categoria}
+            onChange={handleChange}
+            disabled={enviando}
+          >
+            <option value="">Sin categoría</option>
             {categorias.map((categoria) => (
               <option key={categoria} value={categoria}>{categoria}</option>
             ))}
@@ -60,28 +365,109 @@ function AdminCrearProducto() {
             name="imagenUrl"
             type="text"
             placeholder="/img/Nombre del producto.png"
-            required
+            value={formData.imagenUrl}
+            onChange={handleChange}
+            disabled={enviando}
           />
 
-          <label htmlFor="especificaciones">Especificaciones</label>
-          <textarea
-            id="especificaciones"
-            name="especificaciones"
-            rows={5}
-            placeholder={'Medidas: 120 × 45 × 75 cm\nMaterial: Roble macizo\nTerminación: Aceite natural'}
-          />
-          <p className="admin-help">Una especificación por línea con formato «Etiqueta: valor».</p>
+          <div className="admin-specs">
+            <div className="admin-specs-header">
+              <span className="admin-specs-title">Especificaciones</span>
+              <button
+                type="button"
+                className="admin-add-spec"
+                onClick={agregarEspecificacion}
+                disabled={enviando}
+              >
+                + AGREGAR
+              </button>
+            </div>
+
+            {especificaciones.length === 0 && (
+              <p className="admin-help">
+                Opcional. Agregá filas con una etiqueta y su valor.
+              </p>
+            )}
+
+            {especificaciones.map((especificacion, index) => (
+              <div className="admin-spec-row" key={index}>
+                <div>
+                  <label htmlFor={`spec-label-${index}`}>Etiqueta</label>
+                  <input
+                    id={`spec-label-${index}`}
+                    type="text"
+                    value={especificacion.label}
+                    onChange={(event) =>
+                      handleEspecificacionChange(index, 'label', event.target.value)
+                    }
+                    disabled={enviando}
+                    aria-invalid={Boolean(erroresEspecificaciones[index]?.label)}
+                  />
+                  {erroresEspecificaciones[index]?.label && (
+                    <p className="field-error">
+                      {erroresEspecificaciones[index].label}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor={`spec-value-${index}`}>Valor</label>
+                  <input
+                    id={`spec-value-${index}`}
+                    type="text"
+                    value={especificacion.value}
+                    onChange={(event) =>
+                      handleEspecificacionChange(index, 'value', event.target.value)
+                    }
+                    disabled={enviando}
+                    aria-invalid={Boolean(erroresEspecificaciones[index]?.value)}
+                  />
+                  {erroresEspecificaciones[index]?.value && (
+                    <p className="field-error">
+                      {erroresEspecificaciones[index].value}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="admin-remove-spec"
+                  onClick={() => quitarEspecificacion(index)}
+                  disabled={enviando}
+                  aria-label={`Quitar especificación ${index + 1}`}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+
+            {errores.especificaciones && (
+              <p className="field-error">{errores.especificaciones}</p>
+            )}
+          </div>
 
           <label className="form-checkbox" htmlFor="destacado">
-            <input id="destacado" name="destacado" type="checkbox" />
+            <input
+              id="destacado"
+              name="destacado"
+              type="checkbox"
+              checked={formData.destacado}
+              onChange={handleChange}
+              disabled={enviando}
+            />
             <span>Mostrar como producto destacado</span>
           </label>
 
-          <button className="btn" type="submit">GUARDAR PRODUCTO</button>
+          <button className="btn" type="submit" disabled={enviando}>
+            {enviando ? 'GUARDANDO...' : 'GUARDAR PRODUCTO'}
+          </button>
 
-          <p className="admin-note" role="status">
-            Estructura visual preparada. La conexión con la API se implementará en la próxima etapa.
-          </p>
+          {estado && (
+            <p
+              className={`form-message${estado.tipo === 'error' ? ' form-message-error' : ''}`}
+              role={estado.tipo === 'error' ? 'alert' : 'status'}
+            >
+              {estado.texto}
+            </p>
+          )}
         </form>
 
         <aside className="contact-info">

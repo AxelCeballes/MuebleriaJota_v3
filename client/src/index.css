@@ -187,6 +187,17 @@ h2,
   transform: translateY(0);
 }
 
+.btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn:disabled:hover::after {
+  transform: translateX(-110%);
+}
+
 /* Variantes */
 .btn-buy {
   background: var(--oro);
@@ -280,6 +291,14 @@ h2,
 .form-message::before {
   content: '✓';
   font-weight: 700;
+}
+
+.form-message-error {
+  color: #a33a2d;
+}
+
+.form-message-error::before {
+  content: '!';
 }
 
 /* --------------------------------------------------------------------------
@@ -1166,6 +1185,86 @@ h2,
 .admin-preview-list code {
   font-size: .82em;
   color: var(--siena);
+}
+
+.field-error {
+  color: #a33a2d;
+  font-size: .78rem;
+  line-height: 1.4;
+  margin: -.55rem 0 .85rem;
+}
+
+.admin-specs {
+  margin: .2rem 0 .3rem;
+}
+
+.admin-specs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .45rem;
+}
+
+.admin-specs-title {
+  font-weight: 600;
+  font-size: .78rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--texto);
+  opacity: .75;
+}
+
+.admin-add-spec,
+.admin-remove-spec {
+  background: transparent;
+  border: 1.5px solid var(--siena-25);
+  color: var(--siena);
+  border-radius: var(--r-xs);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.admin-add-spec {
+  padding: .45rem .8rem;
+  font: 600 .68rem "Inter", sans-serif;
+  letter-spacing: .1em;
+}
+
+.admin-add-spec:hover:not(:disabled),
+.admin-remove-spec:hover:not(:disabled) {
+  background: var(--siena-08);
+  border-color: var(--siena);
+}
+
+.admin-add-spec:disabled,
+.admin-remove-spec:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.admin-spec-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: .6rem;
+  align-items: start;
+  margin-bottom: .9rem;
+}
+
+.admin-spec-row input {
+  margin-bottom: 0;
+}
+
+.admin-spec-row .field-error {
+  margin: .35rem 0 0;
+}
+
+.admin-remove-spec {
+  width: 2.75rem;
+  height: 3.15rem;
+  margin-top: 1.55rem;
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .contact-info {

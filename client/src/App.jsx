@@ -300,6 +300,14 @@ function AppContent() {
     navigate(`/productos/${producto._id}`);
   };
 
+  const handleProductoCreado = (producto) => {
+    const productoNormalizado = normalizarProducto(producto);
+    setProductos((prev) => [
+      productoNormalizado,
+      ...prev.filter((item) => item._id !== productoNormalizado._id),
+    ]);
+  };
+
   // Cálculo de resumen del carrito
   const cantidadesCarrito = carrito.reduce((acc, id) => {
     const key = String(id);
@@ -375,7 +383,7 @@ function AppContent() {
           />
           <Route
             path="/admin/crear-producto"
-            element={<AdminCrearProducto />}
+            element={<AdminCrearProducto onProductoCreado={handleProductoCreado} />}
           />
           <Route
             path="/carrito"

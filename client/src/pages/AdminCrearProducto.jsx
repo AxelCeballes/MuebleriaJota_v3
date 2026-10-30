@@ -210,7 +210,7 @@ function AdminCrearProducto({ onProductoCreado }) {
     }
 
     try {
-      const respuesta = await fetch('/api/productos', {
+      const respuesta = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/productos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

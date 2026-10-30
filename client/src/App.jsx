@@ -206,7 +206,7 @@ function AppContent() {
 
   const solicitarProductos = useCallback(async (signal) => {
     try {
-      const respuesta = await fetch('/api/productos', { signal });
+      const respuesta = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/productos', { signal });
       if (!respuesta.ok) {
         throw new Error(`Error ${respuesta.status} al pedir los productos`);
       }

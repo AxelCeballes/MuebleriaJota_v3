@@ -1,11 +1,12 @@
 const cors = require('cors');
 const express = require('express');
 const { getConnectionStatus } = require('./config/db');
+const corsOptions = require('./config/cors');
 const productRoutes = require('./routes/productRoutes');
 
 const app = express();
 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.get('/api/health', (request, response) => {

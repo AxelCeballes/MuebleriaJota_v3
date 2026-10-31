@@ -14,3 +14,12 @@ export const normalizarTexto = (texto = '') =>
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+
+export const resolverImagenUrl = (imagenUrl = '') => {
+  if (!imagenUrl) return '';
+  if (/^(data:|blob:|https?:\/\/)/i.test(imagenUrl)) return imagenUrl;
+  if (imagenUrl.startsWith('/api/')) {
+    return `${import.meta.env.VITE_API_BASE || ''}${imagenUrl}`;
+  }
+  return imagenUrl.startsWith('/') ? imagenUrl : `/${imagenUrl}`;
+};

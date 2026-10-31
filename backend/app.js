@@ -3,11 +3,14 @@ const express = require('express');
 const { getConnectionStatus } = require('./config/db');
 const corsOptions = require('./config/cors');
 const productRoutes = require('./routes/productRoutes');
+const imageRoutes = require('./routes/imageRoutes');
+const upload = require('./middleware/imageUpload');
 
 const app = express();
 
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '20kb' }));
+app.disable('x-powered-by');
 
 app.get('/api/health', (request, response) => {
   const mongodb = getConnectionStatus();
@@ -24,6 +27,7 @@ app.get('/api/health', (request, response) => {
   });
 });
 
+app.use('/api/imagenes', imageRoutes);
 app.use('/api/productos', productRoutes);
 
 app.use((request, response) => {
@@ -34,6 +38,18 @@ app.use((request, response) => {
 });
 
 app.use((error, request, response, next) => {
+  if (error.code === 'LIMIT_FILE_SIZE') {
+    return response.status(413).json({ status: 'error', message: 'La imagen no puede superar los 3 MB.' });
+  }
+
+  if (error instanceof upload.MulterError) {
+    return response.status(400).json({ status: 'error', message: 'No se pudo procesar el archivo enviado.' });
+  }
+
+  if (error.status) {
+    return response.status(error.status).json({ status: 'error', message: error.message });
+  }
+
   if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
     return response.status(400).json({
       status: 'error',

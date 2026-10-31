@@ -7,7 +7,7 @@ import ProductDetail from './components/ProductDetail';
 import ContactForm from './components/ContactForm';
 import Cart from './components/Cart';
 import ScrollToTop from './components/ScrollToTop';
-import AdminCrearProducto from './pages/AdminCrearProducto';
+import AdminGestion from './pages/AdminGestion';
 
 // Componente para la página de inicio
 function HomePage({ productos, onAddToCart, onSelectProduct, cargando, error, onReintentar }) {
@@ -300,7 +300,12 @@ function AppContent() {
     navigate(`/productos/${producto._id}`);
   };
 
-  const handleProductoCreado = (producto) => {
+  const handleProductoCreado = (producto, deletedId) => {
+    if (deletedId) {
+      setProductos((prev) => prev.filter((item) => item._id !== deletedId));
+      return;
+    }
+    if (!producto) return;
     const productoNormalizado = normalizarProducto(producto);
     setProductos((prev) => [
       productoNormalizado,
@@ -383,7 +388,7 @@ function AppContent() {
           />
           <Route
             path="/admin/crear-producto"
-            element={<AdminCrearProducto onProductoCreado={handleProductoCreado} />}
+            element={<AdminGestion onProductoGuardado={handleProductoCreado} />}
           />
           <Route
             path="/carrito"

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { resolverImagenUrl } from '../utils/format';
 
 const categorias = [
   'Aparadores',
@@ -27,18 +28,30 @@ const erroresIniciales = {
   especificaciones: '',
 };
 
-function AdminCrearProducto({ onProductoCreado }) {
+function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) {
   const navigate = useNavigate();
   const redireccionRef = useRef(null);
-  const [formData, setFormData] = useState(formularioInicial);
-  const [especificaciones, setEspecificaciones] = useState([]);
+  const [formData, setFormData] = useState(() => initialProduct ? {
+    nombre: initialProduct.nombre || '',
+    descripcion: initialProduct.descripcion || '',
+    precio: String(initialProduct.precio ?? ''),
+    stock: String(initialProduct.stock ?? 0),
+    imagenUrl: initialProduct.imagenUrl || '',
+    categoria: initialProduct.categoria || '',
+    destacado: Boolean(initialProduct.destacado),
+  } : formularioInicial);
+  const [especificaciones, setEspecificaciones] = useState(() => initialProduct?.especificaciones || []);
   const [errores, setErrores] = useState(erroresIniciales);
   const [erroresEspecificaciones, setErroresEspecificaciones] = useState([]);
   const [estado, setEstado] = useState(null);
   const [enviando, setEnviando] = useState(false);
+  const [imagenArchivo, setImagenArchivo] = useState(null);
+  const [vistaPreviaLocal, setVistaPreviaLocal] = useState('');
+  const vistaPreviaRef = useRef('');
 
   useEffect(() => () => {
     if (redireccionRef.current) clearTimeout(redireccionRef.current);
+    if (vistaPreviaRef.current) URL.revokeObjectURL(vistaPreviaRef.current);
   }, []);
 
   const limpiarFormulario = () => {
@@ -46,6 +59,40 @@ function AdminCrearProducto({ onProductoCreado }) {
     setEspecificaciones([]);
     setErrores(erroresIniciales);
     setErroresEspecificaciones([]);
+    setImagenArchivo(null);
+    if (vistaPreviaRef.current) URL.revokeObjectURL(vistaPreviaRef.current);
+    vistaPreviaRef.current = '';
+    setVistaPreviaLocal('');
+  };
+
+  const handleImagenSeleccionada = (event) => {
+    const archivo = event.target.files?.[0];
+    if (!archivo) return;
+    const tiposPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!tiposPermitidos.includes(archivo.type)) {
+      setEstado({ tipo: 'error', texto: 'Elegí una imagen JPG, PNG o WebP.' });
+      event.target.value = '';
+      return;
+    }
+    if (archivo.size > 3 * 1024 * 1024) {
+      setEstado({ tipo: 'error', texto: 'La imagen debe pesar como máximo 3 MB.' });
+      event.target.value = '';
+      return;
+    }
+    if (vistaPreviaRef.current) URL.revokeObjectURL(vistaPreviaRef.current);
+    vistaPreviaRef.current = URL.createObjectURL(archivo);
+    setVistaPreviaLocal(vistaPreviaRef.current);
+    setImagenArchivo(archivo);
+    setEstado(null);
+  };
+
+  const quitarImagen = () => {
+    setImagenArchivo(null);
+    setFormData((prev) => ({ ...prev, imagenUrl: '' }));
+    if (vistaPreviaRef.current) URL.revokeObjectURL(vistaPreviaRef.current);
+    vistaPreviaRef.current = '';
+    setVistaPreviaLocal('');
+    setEstado(null);
   };
 
   const handleChange = (event) => {
@@ -210,8 +257,27 @@ function AdminCrearProducto({ onProductoCreado }) {
     }
 
     try {
-      const respuesta = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/productos', {
-        method: 'POST',
+      if (imagenArchivo) {
+        const datosImagen = new FormData();
+        datosImagen.append('imagen', imagenArchivo);
+        const respuestaImagen = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/imagenes', {
+          method: 'POST',
+          body: datosImagen,
+        });
+        let resultadoImagen = null;
+        try {
+          resultadoImagen = await respuestaImagen.json();
+        } catch {
+          resultadoImagen = null;
+        }
+        if (!respuestaImagen.ok || !resultadoImagen?.imagenUrl) {
+          throw new Error(resultadoImagen?.message || 'No se pudo subir la imagen.');
+        }
+        payload.imagenUrl = resultadoImagen.imagenUrl;
+      }
+
+      const respuesta = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/productos' + (initialProduct ? `/${initialProduct._id}` : ''), {
+        method: initialProduct ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -239,10 +305,13 @@ function AdminCrearProducto({ onProductoCreado }) {
       const productoCreado = await respuesta.json();
 
       limpiarFormulario();
-      if (onProductoCreado) onProductoCreado(productoCreado);
+      if (onProductoGuardado) {
+        onProductoGuardado(productoCreado);
+        return;
+      }
       setEstado({
         tipo: 'exito',
-        texto: 'Producto creado correctamente. Volviendo al catálogo...',
+        texto: `${initialProduct ? 'Producto actualizado' : 'Producto creado'} correctamente. Volviendo al catálogo...`,
       });
 
       redireccionRef.current = setTimeout(() => {
@@ -265,8 +334,8 @@ function AdminCrearProducto({ onProductoCreado }) {
     <>
       <section className="page-header">
         <p className="eyebrow">ADMINISTRACIÓN</p>
-        <h1>Crear producto</h1>
-        <p>Alta de una nueva pieza para el catálogo de Hermanos Jota.</p>
+        <h1>{initialProduct ? 'Editar producto' : 'Crear producto'}</h1>
+        <p>{initialProduct ? 'Actualizá los datos de esta pieza.' : 'Alta de una nueva pieza para el catálogo de Hermanos Jota.'}</p>
       </section>
 
       <section className="contact-section admin-section">
@@ -359,16 +428,26 @@ function AdminCrearProducto({ onProductoCreado }) {
             ))}
           </select>
 
-          <label htmlFor="imagenUrl">Imagen URL</label>
+          <label htmlFor="imagenArchivo">Imagen del producto</label>
           <input
-            id="imagenUrl"
-            name="imagenUrl"
-            type="text"
-            placeholder="/img/Nombre del producto.png"
-            value={formData.imagenUrl}
-            onChange={handleChange}
+            id="imagenArchivo"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleImagenSeleccionada}
             disabled={enviando}
           />
+          <p className="admin-help">Buscá una imagen en tus archivos. Formatos: JPG, PNG o WebP; máximo 3 MB.</p>
+          {(vistaPreviaLocal || formData.imagenUrl) && (
+            <div className="admin-image-preview">
+              <img
+                src={vistaPreviaLocal || resolverImagenUrl(formData.imagenUrl)}
+                alt="Vista previa de la imagen del producto"
+              />
+              <button type="button" className="btn-outline" onClick={quitarImagen} disabled={enviando}>
+                QUITAR IMAGEN
+              </button>
+            </div>
+          )}
 
           <div className="admin-specs">
             <div className="admin-specs-header">
@@ -457,8 +536,9 @@ function AdminCrearProducto({ onProductoCreado }) {
           </label>
 
           <button className="btn" type="submit" disabled={enviando}>
-            {enviando ? 'GUARDANDO...' : 'GUARDAR PRODUCTO'}
+            {enviando ? 'GUARDANDO...' : initialProduct ? 'GUARDAR CAMBIOS' : 'GUARDAR PRODUCTO'}
           </button>
+          {onCancelar && <button className="btn-outline" type="button" onClick={onCancelar} disabled={enviando}>CANCELAR</button>}
 
           {estado && (
             <p
@@ -479,7 +559,7 @@ function AdminCrearProducto({ onProductoCreado }) {
           </p>
           <ul className="admin-preview-list">
             <li>Los identificadores serán ObjectId generados por MongoDB.</li>
-            <li>La imagen se tomará desde <code>imagenUrl</code>.</li>
+            <li>Las imágenes se guardan en MongoDB y quedan disponibles para el catálogo.</li>
             <li>Las especificaciones mantendrán la estructura <code>{'{ label, value }'}</code>.</li>
           </ul>
           <Link to="/productos" className="text-link">Volver al catálogo →</Link>

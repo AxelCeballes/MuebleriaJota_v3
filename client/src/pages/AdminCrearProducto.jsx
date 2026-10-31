@@ -27,7 +27,7 @@ const erroresIniciales = {
   especificaciones: '',
 };
 
-function AdminCrearProducto({ onProductoCreado, onProductoGuardado, onCancelar, onUnauthorized, accessToken, initialProduct }) {
+function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) {
   const navigate = useNavigate();
   const redireccionRef = useRef(null);
   const [formData, setFormData] = useState(() => initialProduct ? {
@@ -222,13 +222,11 @@ function AdminCrearProducto({ onProductoCreado, onProductoGuardado, onCancelar, 
         method: initialProduct ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(payload),
       });
 
       if (!respuesta.ok) {
-        if (respuesta.status === 401) onUnauthorized?.();
         let datosError = null;
         try {
           datosError = await respuesta.json();
@@ -249,7 +247,6 @@ function AdminCrearProducto({ onProductoCreado, onProductoGuardado, onCancelar, 
       const productoCreado = await respuesta.json();
 
       limpiarFormulario();
-      if (onProductoCreado) onProductoCreado(productoCreado);
       if (onProductoGuardado) {
         onProductoGuardado(productoCreado);
         return;

@@ -24,7 +24,7 @@ const corsOptions = {
     return callback(null, false);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: false,
 };
 

@@ -28,7 +28,7 @@ const erroresIniciales = {
   especificaciones: '',
 };
 
-function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) {
+function AdminCrearProducto({ onProductoGuardado, onCancelar, onUnauthorized, accessToken, initialProduct }) {
   const navigate = useNavigate();
   const redireccionRef = useRef(null);
   const [formData, setFormData] = useState(() => initialProduct ? {
@@ -262,6 +262,7 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
         datosImagen.append('imagen', imagenArchivo);
         const respuestaImagen = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/imagenes', {
           method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}` },
           body: datosImagen,
         });
         let resultadoImagen = null;
@@ -271,6 +272,7 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
           resultadoImagen = null;
         }
         if (!respuestaImagen.ok || !resultadoImagen?.imagenUrl) {
+          if (respuestaImagen.status === 401) onUnauthorized?.();
           throw new Error(resultadoImagen?.message || 'No se pudo subir la imagen.');
         }
         payload.imagenUrl = resultadoImagen.imagenUrl;
@@ -280,11 +282,13 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
         method: initialProduct ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(payload),
       });
 
       if (!respuesta.ok) {
+        if (respuesta.status === 401) onUnauthorized?.();
         let datosError = null;
         try {
           datosError = await respuesta.json();

@@ -51,7 +51,7 @@ El script `test` del backend actualmente es un marcador que termina con error; n
 
 ## Configuración
 
-- El backend requiere `MONGODB_URI`; también utiliza `PORT` y, en producción, `CORS_ORIGINS` con orígenes separados por comas.
+- El backend requiere `MONGODB_URI`, `ADMIN_PASSWORD` (mínimo 12 caracteres) y `JWT_SECRET` (mínimo 32 caracteres aleatorios); también utiliza `PORT` y, en producción, `CORS_ORIGINS` con orígenes separados por comas.
 - El cliente usa `VITE_API_BASE` para la URL base de la API. Si queda vacío en desarrollo, Vite reenvía `/api` a `http://localhost:3000`.
 - No guardes secretos, URI de MongoDB ni archivos `.env` en el repositorio. Los `.env` están ignorados por Git.
 - En despliegues, las variables se configuran en el servicio correspondiente; el frontend requiere rebuild después de cambiar variables `VITE_*`.
@@ -59,8 +59,9 @@ El script `test` del backend actualmente es un marcador que termina con error; n
 ## API y persistencia
 
 - `GET /api/health`: estado del servidor y conexión MongoDB.
-- `/api/productos`: listar, obtener por ID, crear, actualizar y eliminar productos. Las rutas de escritura actualmente no requieren inicio de sesión; conserva ese comportamiento salvo que la tarea solicite cambiarlo.
-- `POST /api/imagenes`: recibe un archivo multipart en el campo `imagen`, valida JPG/PNG/WebP y limita el archivo a 3 MB.
+- `/api/productos`: listar, obtener por ID, crear, actualizar y eliminar productos. Las rutas de escritura requieren `Authorization: Bearer <token>` de administrador.
+- `POST /api/admin/login`: valida `ADMIN_PASSWORD` y devuelve un token firmado con expiración de ocho horas.
+- `POST /api/imagenes`: requiere token de administrador, recibe un archivo multipart en el campo `imagen`, valida JPG/PNG/WebP y limita el archivo a 3 MB.
 - `GET /api/imagenes/:id`: sirve un archivo de GridFS.
 - Las imágenes nuevas se guardan en el bucket GridFS `imagenesProductos`; el documento de producto conserva una ruta `/api/imagenes/<ObjectId>` en `imagenUrl`.
 - Al reemplazar o borrar un producto, la API intenta borrar la imagen anterior de GridFS. No guardes archivos subidos en el disco local del servidor: el despliegue puede usar almacenamiento efímero.
@@ -69,7 +70,7 @@ El script `test` del backend actualmente es un marcador que termina con error; n
 ## Frontend y convenciones
 
 - Rutas principales: `/`, `/productos`, `/productos/:id`, `/contacto`, `/carrito` y `/admin/crear-producto`.
-- La administración permite crear, editar y eliminar productos sin login. La API pública debe seguir validando los datos aunque la interfaz también valide.
+- La administración permite crear, editar y eliminar productos tras iniciar sesión. La API debe validar autorización y datos aunque la interfaz también los valide.
 - El carrito se conserva en `localStorage`; no lo confundas con un pedido persistido. El botón de compra es demostrativo y no procesa pagos.
 - Usa `resolverImagenUrl` para mostrar imágenes. Convierte las rutas `/api/imagenes/...` a la URL de API configurada; respeta rutas estáticas existentes bajo `/img`.
 - Mantén el estilo existente y las variables CSS de `client/src/index.css`. Usa componentes y hooks funcionales, nombres descriptivos en el idioma predominante del archivo y mensajes visibles en español.

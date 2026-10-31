@@ -27,11 +27,19 @@ const erroresIniciales = {
   especificaciones: '',
 };
 
-function AdminCrearProducto({ onProductoCreado }) {
+function AdminCrearProducto({ onProductoCreado, onProductoGuardado, onCancelar, onUnauthorized, accessToken, initialProduct }) {
   const navigate = useNavigate();
   const redireccionRef = useRef(null);
-  const [formData, setFormData] = useState(formularioInicial);
-  const [especificaciones, setEspecificaciones] = useState([]);
+  const [formData, setFormData] = useState(() => initialProduct ? {
+    nombre: initialProduct.nombre || '',
+    descripcion: initialProduct.descripcion || '',
+    precio: String(initialProduct.precio ?? ''),
+    stock: String(initialProduct.stock ?? 0),
+    imagenUrl: initialProduct.imagenUrl || '',
+    categoria: initialProduct.categoria || '',
+    destacado: Boolean(initialProduct.destacado),
+  } : formularioInicial);
+  const [especificaciones, setEspecificaciones] = useState(() => initialProduct?.especificaciones || []);
   const [errores, setErrores] = useState(erroresIniciales);
   const [erroresEspecificaciones, setErroresEspecificaciones] = useState([]);
   const [estado, setEstado] = useState(null);
@@ -210,15 +218,17 @@ function AdminCrearProducto({ onProductoCreado }) {
     }
 
     try {
-      const respuesta = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/productos', {
-        method: 'POST',
+      const respuesta = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/productos' + (initialProduct ? `/${initialProduct._id}` : ''), {
+        method: initialProduct ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(payload),
       });
 
       if (!respuesta.ok) {
+        if (respuesta.status === 401) onUnauthorized?.();
         let datosError = null;
         try {
           datosError = await respuesta.json();
@@ -240,9 +250,13 @@ function AdminCrearProducto({ onProductoCreado }) {
 
       limpiarFormulario();
       if (onProductoCreado) onProductoCreado(productoCreado);
+      if (onProductoGuardado) {
+        onProductoGuardado(productoCreado);
+        return;
+      }
       setEstado({
         tipo: 'exito',
-        texto: 'Producto creado correctamente. Volviendo al catálogo...',
+        texto: `${initialProduct ? 'Producto actualizado' : 'Producto creado'} correctamente. Volviendo al catálogo...`,
       });
 
       redireccionRef.current = setTimeout(() => {
@@ -265,8 +279,8 @@ function AdminCrearProducto({ onProductoCreado }) {
     <>
       <section className="page-header">
         <p className="eyebrow">ADMINISTRACIÓN</p>
-        <h1>Crear producto</h1>
-        <p>Alta de una nueva pieza para el catálogo de Hermanos Jota.</p>
+        <h1>{initialProduct ? 'Editar producto' : 'Crear producto'}</h1>
+        <p>{initialProduct ? 'Actualizá los datos de esta pieza.' : 'Alta de una nueva pieza para el catálogo de Hermanos Jota.'}</p>
       </section>
 
       <section className="contact-section admin-section">
@@ -457,8 +471,9 @@ function AdminCrearProducto({ onProductoCreado }) {
           </label>
 
           <button className="btn" type="submit" disabled={enviando}>
-            {enviando ? 'GUARDANDO...' : 'GUARDAR PRODUCTO'}
+            {enviando ? 'GUARDANDO...' : initialProduct ? 'GUARDAR CAMBIOS' : 'GUARDAR PRODUCTO'}
           </button>
+          {onCancelar && <button className="btn-outline" type="button" onClick={onCancelar} disabled={enviando}>CANCELAR</button>}
 
           {estado && (
             <p

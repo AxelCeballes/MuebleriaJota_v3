@@ -3,11 +3,16 @@ const express = require('express');
 const { getConnectionStatus } = require('./config/db');
 const corsOptions = require('./config/cors');
 const productRoutes = require('./routes/productRoutes');
+const { loginAdmin } = require('./middleware/adminAuth');
 
 const app = express();
 
+app.set('trust proxy', 1);
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '20kb' }));
+app.disable('x-powered-by');
+
+app.post('/api/admin/login', loginAdmin);
 
 app.get('/api/health', (request, response) => {
   const mongodb = getConnectionStatus();

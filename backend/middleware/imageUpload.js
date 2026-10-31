@@ -14,4 +14,6 @@ const upload = multer({
   },
 });
 
+upload.MulterError = multer.MulterError;
+
 module.exports = upload;

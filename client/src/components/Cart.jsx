@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatoPrecio } from '../utils/format';
+import { formatoPrecio, resolverImagenUrl } from '../utils/format';
 
 function Cart({
   items = [],
@@ -25,11 +25,7 @@ function Cart({
           </div>
         ) : (
           items.map(({ producto, cantidad }) => {
-            const imageSrc = producto.imagenUrl
-              ? producto.imagenUrl.startsWith('/')
-                ? producto.imagenUrl
-                : `/${producto.imagenUrl}`
-              : '';
+            const imageSrc = resolverImagenUrl(producto.imagenUrl);
             return (
               <article key={producto._id} className="cart-item">
                 <div className="cart-item-image">

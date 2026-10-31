@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { resolverImagenUrl } from '../utils/format';
 
 const categorias = [
   'Aparadores',
@@ -44,9 +45,13 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
   const [erroresEspecificaciones, setErroresEspecificaciones] = useState([]);
   const [estado, setEstado] = useState(null);
   const [enviando, setEnviando] = useState(false);
+  const [imagenArchivo, setImagenArchivo] = useState(null);
+  const [vistaPreviaLocal, setVistaPreviaLocal] = useState('');
+  const vistaPreviaRef = useRef('');
 
   useEffect(() => () => {
     if (redireccionRef.current) clearTimeout(redireccionRef.current);
+    if (vistaPreviaRef.current) URL.revokeObjectURL(vistaPreviaRef.current);
   }, []);
 
   const limpiarFormulario = () => {
@@ -54,6 +59,40 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
     setEspecificaciones([]);
     setErrores(erroresIniciales);
     setErroresEspecificaciones([]);
+    setImagenArchivo(null);
+    if (vistaPreviaRef.current) URL.revokeObjectURL(vistaPreviaRef.current);
+    vistaPreviaRef.current = '';
+    setVistaPreviaLocal('');
+  };
+
+  const handleImagenSeleccionada = (event) => {
+    const archivo = event.target.files?.[0];
+    if (!archivo) return;
+    const tiposPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!tiposPermitidos.includes(archivo.type)) {
+      setEstado({ tipo: 'error', texto: 'Elegí una imagen JPG, PNG o WebP.' });
+      event.target.value = '';
+      return;
+    }
+    if (archivo.size > 3 * 1024 * 1024) {
+      setEstado({ tipo: 'error', texto: 'La imagen debe pesar como máximo 3 MB.' });
+      event.target.value = '';
+      return;
+    }
+    if (vistaPreviaRef.current) URL.revokeObjectURL(vistaPreviaRef.current);
+    vistaPreviaRef.current = URL.createObjectURL(archivo);
+    setVistaPreviaLocal(vistaPreviaRef.current);
+    setImagenArchivo(archivo);
+    setEstado(null);
+  };
+
+  const quitarImagen = () => {
+    setImagenArchivo(null);
+    setFormData((prev) => ({ ...prev, imagenUrl: '' }));
+    if (vistaPreviaRef.current) URL.revokeObjectURL(vistaPreviaRef.current);
+    vistaPreviaRef.current = '';
+    setVistaPreviaLocal('');
+    setEstado(null);
   };
 
   const handleChange = (event) => {
@@ -218,6 +257,25 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
     }
 
     try {
+      if (imagenArchivo) {
+        const datosImagen = new FormData();
+        datosImagen.append('imagen', imagenArchivo);
+        const respuestaImagen = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/imagenes', {
+          method: 'POST',
+          body: datosImagen,
+        });
+        let resultadoImagen = null;
+        try {
+          resultadoImagen = await respuestaImagen.json();
+        } catch {
+          resultadoImagen = null;
+        }
+        if (!respuestaImagen.ok || !resultadoImagen?.imagenUrl) {
+          throw new Error(resultadoImagen?.message || 'No se pudo subir la imagen.');
+        }
+        payload.imagenUrl = resultadoImagen.imagenUrl;
+      }
+
       const respuesta = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/productos' + (initialProduct ? `/${initialProduct._id}` : ''), {
         method: initialProduct ? 'PUT' : 'POST',
         headers: {
@@ -370,16 +428,26 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
             ))}
           </select>
 
-          <label htmlFor="imagenUrl">Imagen URL</label>
+          <label htmlFor="imagenArchivo">Imagen del producto</label>
           <input
-            id="imagenUrl"
-            name="imagenUrl"
-            type="text"
-            placeholder="/img/Nombre del producto.png"
-            value={formData.imagenUrl}
-            onChange={handleChange}
+            id="imagenArchivo"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleImagenSeleccionada}
             disabled={enviando}
           />
+          <p className="admin-help">Buscá una imagen en tus archivos. Formatos: JPG, PNG o WebP; máximo 3 MB.</p>
+          {(vistaPreviaLocal || formData.imagenUrl) && (
+            <div className="admin-image-preview">
+              <img
+                src={vistaPreviaLocal || resolverImagenUrl(formData.imagenUrl)}
+                alt="Vista previa de la imagen del producto"
+              />
+              <button type="button" className="btn-outline" onClick={quitarImagen} disabled={enviando}>
+                QUITAR IMAGEN
+              </button>
+            </div>
+          )}
 
           <div className="admin-specs">
             <div className="admin-specs-header">
@@ -491,7 +559,7 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
           </p>
           <ul className="admin-preview-list">
             <li>Los identificadores serán ObjectId generados por MongoDB.</li>
-            <li>La imagen se tomará desde <code>imagenUrl</code>.</li>
+            <li>Las imágenes se guardan en MongoDB y quedan disponibles para el catálogo.</li>
             <li>Las especificaciones mantendrán la estructura <code>{'{ label, value }'}</code>.</li>
           </ul>
           <Link to="/productos" className="text-link">Volver al catálogo →</Link>

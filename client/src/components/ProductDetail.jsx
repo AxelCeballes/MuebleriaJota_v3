@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { formatoPrecio } from '../utils/format';
 import { activarFeedbackCarrito } from '../utils/cartFeedback';
+import { resolverImagenUrl } from '../utils/format';
 
 function ProductDetail({ producto, onAddToCart, onBack }) {
   const [mensaje, setMensaje] = useState('');
@@ -19,11 +20,7 @@ function ProductDetail({ producto, onAddToCart, onBack }) {
   }
 
   const { _id, nombre, precio, categoria, imagenUrl, descripcion, especificaciones } = producto;
-  const imageSrc = imagenUrl
-    ? imagenUrl.startsWith('/')
-      ? imagenUrl
-      : `/${imagenUrl}`
-    : '';
+  const imageSrc = resolverImagenUrl(imagenUrl);
 
   const handleAdd = (mensajeTexto = 'Producto añadido al carrito.', boton) => {
     if (onAddToCart) {

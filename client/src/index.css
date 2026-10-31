@@ -1872,6 +1872,22 @@ h2,
   gap: .65rem;
 }
 
+.admin-image-preview {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: .75rem;
+  margin: .75rem 0 1.25rem;
+}
+
+.admin-image-preview img {
+  width: min(100%, 320px);
+  max-height: 240px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--blanco);
+}
+
 @media (max-width: 600px) {
   .admin-product-row {
     align-items: flex-start;

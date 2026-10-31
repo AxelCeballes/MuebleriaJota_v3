@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
+const { deleteStoredImage } = require('../services/imageStorage');
 
 const ALLOWED_FIELDS = [
   'nombre',
@@ -91,6 +92,7 @@ const updateProduct = asyncHandler(async (request, response) => {
     });
   }
 
+  const previousImageUrl = product.imagenUrl;
   const body = request.body ?? {};
 
   ALLOWED_FIELDS.forEach((field) => {
@@ -100,6 +102,12 @@ const updateProduct = asyncHandler(async (request, response) => {
   });
 
   const updatedProduct = await product.save();
+
+  if (previousImageUrl !== updatedProduct.imagenUrl) {
+    deleteStoredImage(previousImageUrl).catch((error) => {
+      console.error('[Images] No se pudo borrar la imagen anterior:', error.message);
+    });
+  }
 
   return response.status(200).json(updatedProduct);
 });
@@ -122,6 +130,10 @@ const deleteProduct = asyncHandler(async (request, response) => {
       message: 'Producto no encontrado.',
     });
   }
+
+  deleteStoredImage(product.imagenUrl).catch((error) => {
+    console.error('[Images] No se pudo borrar la imagen del producto eliminado:', error.message);
+  });
 
   return response.status(200).json({
     status: 'ok',

@@ -1,15 +1,12 @@
 import { formatoPrecio } from '../utils/format';
 import { activarFeedbackCarrito } from '../utils/cartFeedback';
+import { resolverImagenUrl } from '../utils/format';
 
 function ProductCard({ producto, onSelect, onAddToCart }) {
   if (!producto) return null;
 
   const { _id, nombre, precio, categoria, imagenUrl } = producto;
-  const imageSrc = imagenUrl
-    ? imagenUrl.startsWith('/')
-      ? imagenUrl
-      : `/${imagenUrl}`
-    : '';
+  const imageSrc = resolverImagenUrl(imagenUrl);
 
   const handleCardClick = () => {
     if (onSelect) {

@@ -8,6 +8,7 @@ import ContactForm from './components/ContactForm';
 import Cart from './components/Cart';
 import ScrollToTop from './components/ScrollToTop';
 import AdminGestion from './pages/AdminGestion';
+import NotFound from './pages/NotFound';
 import { validarAgregadoAlCarrito } from './utils/stock';
 
 // Componente para la página de inicio
@@ -416,6 +417,7 @@ function AppContent() {
               />
             }
           />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 

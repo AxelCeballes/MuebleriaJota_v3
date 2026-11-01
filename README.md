@@ -41,7 +41,7 @@ Proyecto académico — Sprint 6
 - 🛒 **Carrito** con cantidades, subtotales, total y persistencia en `localStorage`
 - ✉️ **Contacto** con formulario
 - 🔄 Estados de carga y error al consultar la API, con opción para reintentar
-- 🔐 **Administración protegida** para iniciar sesión y gestionar productos
+- 🧰 Sección de administración para gestionar productos
 - ➕ Crear productos, ✏️ editarlos y 🗑️ eliminarlos
 - 🖼️ Subir imágenes desde el dispositivo y guardarlas en MongoDB GridFS
 
@@ -69,12 +69,10 @@ Proyecto académico — Sprint 6
 
 Hacen falta **dos terminales abiertas al mismo tiempo**.
 
-Antes de iniciar la API, crear `backend/.env` con estas variables:
+Antes de iniciar la API, crear `backend/.env` con la URI de MongoDB:
 
 ```env
 MONGODB_URI=<uri-de-mongodb>
-ADMIN_PASSWORD=<contraseña-de-al-menos-12-caracteres>
-JWT_SECRET=<secreto-aleatorio-de-al-menos-32-caracteres>
 ```
 
 **Terminal 1 — API** (`http://localhost:3000`)
@@ -107,18 +105,17 @@ Vite reenvía las solicitudes `/api` al backend local. Para apuntar a otra API, 
 
 ## 📡 API
 
-Base local: `http://localhost:3000/api`. Las escrituras de productos y la carga de imágenes requieren una sesión de administrador.
+Base local: `http://localhost:3000/api`.
 
 | Método | Ruta | Descripción |
 |---|---|---|
 | `GET` | `/health` | Estado de la API y conexión a MongoDB |
-| `POST` | `/admin/login` | Iniciar sesión de administrador |
 | `GET` | `/productos` | Listar productos |
 | `GET` | `/productos/:id` | Obtener un producto |
-| `POST` | `/productos` | Crear un producto (autenticación requerida) |
-| `PUT` | `/productos/:id` | Actualizar un producto (autenticación requerida) |
-| `DELETE` | `/productos/:id` | Eliminar un producto (autenticación requerida) |
-| `POST` | `/imagenes` | Subir una imagen (autenticación requerida) |
+| `POST` | `/productos` | Crear un producto |
+| `PUT` | `/productos/:id` | Actualizar un producto |
+| `DELETE` | `/productos/:id` | Eliminar un producto |
+| `POST` | `/imagenes` | Subir una imagen |
 | `GET` | `/imagenes/:id` | Obtener una imagen de GridFS |
 
 ## ☁️ Despliegue
@@ -133,7 +130,7 @@ Crear un servicio Web conectado al repositorio y configurar:
 | Build Command | `npm ci` |
 | Start Command | `npm start` |
 
-Agregar en **Environment** las variables `MONGODB_URI`, `ADMIN_PASSWORD`, `JWT_SECRET`, `NODE_ENV=production` y `CORS_ORIGINS` con el dominio del frontend. Render asigna `PORT` automáticamente. MongoDB Atlas debe permitir conexiones desde el servicio.
+Agregar en **Environment** las variables `MONGODB_URI`, `NODE_ENV=production` y `CORS_ORIGINS` con el dominio del frontend. Render asigna `PORT` automáticamente. MongoDB Atlas debe permitir conexiones desde el servicio.
 
 ### Vercel — frontend
 

@@ -5,6 +5,7 @@ import { resolverImagenUrl } from '../utils/format';
 
 function ProductDetail({ producto, onAddToCart, onBack }) {
   const [mensaje, setMensaje] = useState('');
+  const [mensajeEsError, setMensajeEsError] = useState(false);
 
   if (!producto) {
     return (
@@ -22,12 +23,18 @@ function ProductDetail({ producto, onAddToCart, onBack }) {
   const { _id, nombre, precio, categoria, imagenUrl, descripcion, especificaciones } = producto;
   const imageSrc = resolverImagenUrl(imagenUrl);
 
-  const handleAdd = (mensajeTexto = 'Producto añadido al carrito.', boton) => {
-    if (onAddToCart) {
-      onAddToCart(_id);
+  const handleAdd = (boton) => {
+    const resultado = onAddToCart?.(_id);
+
+    if (!resultado || !resultado.ok) {
+      setMensaje(resultado?.mensaje || 'No se pudo agregar el producto.');
+      setMensajeEsError(true);
+      return;
     }
+
     activarFeedbackCarrito(boton);
-    setMensaje(mensajeTexto);
+    setMensaje(resultado.mensaje);
+    setMensajeEsError(false);
   };
 
   return (
@@ -58,7 +65,7 @@ function ProductDetail({ producto, onAddToCart, onBack }) {
               id="add-detail"
               type="button"
               className="btn"
-              onClick={(evento) => handleAdd('Producto añadido al carrito.', evento.currentTarget)}
+              onClick={(evento) => handleAdd(evento.currentTarget)}
             >
               AÑADIR AL CARRITO
             </button>
@@ -74,7 +81,12 @@ function ProductDetail({ producto, onAddToCart, onBack }) {
           </div>
 
           {mensaje && (
-            <p id="detail-message" className="form-message" aria-live="polite">
+            <p
+              id="detail-message"
+              className={`form-message${mensajeEsError ? ' form-message-error' : ''}`}
+              role={mensajeEsError ? 'alert' : 'status'}
+              aria-live="polite"
+            >
               {mensaje}
             </p>
           )}

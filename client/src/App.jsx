@@ -8,6 +8,7 @@ import ContactForm from './components/ContactForm';
 import Cart from './components/Cart';
 import ScrollToTop from './components/ScrollToTop';
 import AdminGestion from './pages/AdminGestion';
+import { validarAgregadoAlCarrito } from './utils/stock';
 
 // Componente para la página de inicio
 function HomePage({ productos, onAddToCart, onSelectProduct, cargando, error, onReintentar }) {
@@ -189,6 +190,7 @@ function CarritoPage({
 // Adapta la respuesta de MongoDB a los valores que consumen los componentes.
 const normalizarProducto = (producto) => ({
   ...producto,
+  stock: Number.isFinite(Number(producto.stock)) ? Number(producto.stock) : 0,
   imagenUrl: typeof producto.imagenUrl === 'string' ? producto.imagenUrl : '',
   categoria: typeof producto.categoria === 'string' ? producto.categoria : 'Sin categoría',
   especificaciones: Array.isArray(producto.especificaciones) ? producto.especificaciones : [],
@@ -274,8 +276,18 @@ function AppContent() {
   }, [carrito]);
 
   // Acciones del carrito
+  // La validación de stock se centraliza acá: todos los componentes que
+  // agregan unidades reciben el resultado para poder mostrar el mensaje.
   const handleAddToCart = (id) => {
-    setCarrito((prev) => [...prev, id]);
+    const producto = productos.find((item) => String(item._id) === String(id));
+    const cantidadEnCarrito = carrito.filter((item) => String(item) === String(id)).length;
+    const resultado = validarAgregadoAlCarrito(producto, cantidadEnCarrito);
+
+    if (resultado.ok) {
+      setCarrito((prev) => [...prev, id]);
+    }
+
+    return resultado;
   };
 
   const handleQuitarUnidad = (id) => {

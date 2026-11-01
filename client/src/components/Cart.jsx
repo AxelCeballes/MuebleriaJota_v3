@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { formatoPrecio, resolverImagenUrl } from '../utils/format';
+import { obtenerStockDisponible } from '../utils/stock';
 
 function Cart({
   items = [],
@@ -12,10 +13,27 @@ function Cart({
   onVaciar
 }) {
   const [compraIniciada, setCompraIniciada] = useState(false);
+  const [mensajeStock, setMensajeStock] = useState('');
+
+  const handleIncrementar = (producto) => {
+    const resultado = onAgregar?.(producto._id);
+
+    if (resultado && !resultado.ok) {
+      setMensajeStock(resultado.mensaje);
+      return;
+    }
+
+    setMensajeStock('');
+  };
 
   return (
     <section className="cart-section">
       <div id="cart-items" className="cart-list">
+        {mensajeStock && (
+          <p className="cart-stock-message cart-stock-message-global" role="alert">
+            {mensajeStock}
+          </p>
+        )}
         {items.length === 0 ? (
           <div className="cart-empty">
             <p>Tu carrito está vacío.</p>
@@ -26,6 +44,8 @@ function Cart({
         ) : (
           items.map(({ producto, cantidad }) => {
             const imageSrc = resolverImagenUrl(producto.imagenUrl);
+            const stock = obtenerStockDisponible(producto);
+            const alcanzoStock = cantidad >= stock;
             return (
               <article key={producto._id} className="cart-item">
                 <div className="cart-item-image">
@@ -49,12 +69,18 @@ function Cart({
                   <button
                     type="button"
                     className="qty-btn"
-                    onClick={() => onAgregar(producto._id)}
+                    onClick={() => handleIncrementar(producto)}
                     aria-label={`Agregar una unidad de ${producto.nombre}`}
+                    disabled={alcanzoStock}
                   >
                     +
                   </button>
                 </div>
+                {alcanzoStock && (
+                  <p className="cart-stock-message" role="status">
+                    {stock === 0 ? 'Producto sin stock.' : `Máximo disponible: ${stock}.`}
+                  </p>
+                )}
                 <p className="cart-item-subtotal">{formatoPrecio(producto.precio * cantidad)}</p>
                 <button
                   type="button"

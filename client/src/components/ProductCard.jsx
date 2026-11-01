@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { formatoPrecio } from '../utils/format';
 import { activarFeedbackCarrito } from '../utils/cartFeedback';
 import { resolverImagenUrl } from '../utils/format';
 
 function ProductCard({ producto, onSelect, onAddToCart }) {
+  const [mensaje, setMensaje] = useState('');
+
   if (!producto) return null;
 
   const { _id, nombre, precio, categoria, imagenUrl } = producto;
@@ -16,9 +19,14 @@ function ProductCard({ producto, onSelect, onAddToCart }) {
 
   const handleAddClick = (e) => {
     e.stopPropagation();
-    if (onAddToCart) {
-      onAddToCart(_id);
+    const resultado = onAddToCart?.(_id);
+
+    if (resultado && !resultado.ok) {
+      setMensaje(resultado.mensaje);
+      return;
     }
+
+    setMensaje('');
     activarFeedbackCarrito(e.currentTarget);
   };
 
@@ -55,6 +63,9 @@ function ProductCard({ producto, onSelect, onAddToCart }) {
         >
           AÑADIR
         </button>
+        {mensaje && (
+          <p className="product-card-message" role="alert">{mensaje}</p>
+        )}
       </div>
     </article>
   );

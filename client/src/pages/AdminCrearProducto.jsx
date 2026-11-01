@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { resolverImagenUrl } from '../utils/format';
+import { esProductoValido, leerJsonDeRespuesta } from '../utils/api';
 
 const categorias = [
   'Aparadores',
@@ -264,12 +265,7 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
           method: 'POST',
           body: datosImagen,
         });
-        let resultadoImagen = null;
-        try {
-          resultadoImagen = await respuestaImagen.json();
-        } catch {
-          resultadoImagen = null;
-        }
+        const resultadoImagen = await leerJsonDeRespuesta(respuestaImagen);
         if (!respuestaImagen.ok || !resultadoImagen?.imagenUrl) {
           throw new Error(resultadoImagen?.message || 'No se pudo subir la imagen.');
         }
@@ -284,29 +280,26 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
         body: JSON.stringify(payload),
       });
 
-      if (!respuesta.ok) {
-        let datosError = null;
-        try {
-          datosError = await respuesta.json();
-        } catch {
-          datosError = null;
-        }
+      const datos = await leerJsonDeRespuesta(respuesta);
 
-        const detalles = Array.isArray(datosError?.errors)
-          ? ` ${datosError.errors.join(' ')}`
+      if (!respuesta.ok) {
+        const detalles = Array.isArray(datos?.errors)
+          ? ` ${datos.errors.join(' ')}`
           : '';
         throw new Error(
-          datosError?.message
-            ? `${datosError.message}${detalles}`
-            : 'El servidor rechazó la creación del producto.'
+          datos?.message
+            ? `${datos.message}${detalles}`
+            : `El servidor rechazó ${initialProduct ? 'la actualización' : 'la creación'} del producto.`
         );
       }
 
-      const productoCreado = await respuesta.json();
+      if (!esProductoValido(datos)) {
+        throw new Error('La respuesta del servidor no contiene un producto válido.');
+      }
 
       limpiarFormulario();
       if (onProductoGuardado) {
-        onProductoGuardado(productoCreado);
+        onProductoGuardado(datos);
         return;
       }
       setEstado({

@@ -1,10 +1,10 @@
 const cors = require('cors');
 const express = require('express');
+const multer = require('multer');
 const { getConnectionStatus } = require('./config/db');
 const corsOptions = require('./config/cors');
 const productRoutes = require('./routes/productRoutes');
 const imageRoutes = require('./routes/imageRoutes');
-const upload = require('./middleware/imageUpload');
 
 const app = express();
 
@@ -42,7 +42,7 @@ app.use((error, request, response, next) => {
     return response.status(413).json({ status: 'error', message: 'La imagen no puede superar los 3 MB.' });
   }
 
-  if (error instanceof upload.MulterError) {
+  if (error instanceof multer.MulterError) {
     return response.status(400).json({ status: 'error', message: 'No se pudo procesar el archivo enviado.' });
   }
 

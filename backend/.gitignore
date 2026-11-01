@@ -1,2 +1,5 @@
 node_modules/
+
+# Variables de entorno reales (no versionar). El ejemplo sí se versiona.
 .env
+!.env.example

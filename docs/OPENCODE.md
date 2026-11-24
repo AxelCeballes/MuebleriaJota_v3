@@ -6,6 +6,47 @@
 3. Revisar los archivos implicados y sus tests actuales antes de proponer cambios.
 4. Verificar la línea base real con los scripts de `backend/package.json` y `client/package.json`. No asumir que el README/AGENTS están actualizados si contradicen los scripts o el árbol.
 
+## Restricción obligatoria: modelo Product y base de datos
+
+Antes de modificar cualquier modelo, inspeccioná cómo está implementado actualmente y cómo se utiliza en el resto del proyecto.
+
+El modelo Product de los sprints 5 y 6 tiene esta estructura:
+
+```js
+{
+  nombre: String,       // required
+  descripcion: String,
+  precio: Number,       // required
+  stock: Number,
+  imagenUrl: String
+}
+```
+
+Debés respetar esta estructura:
+
+- Mantener los nombres y tipos originales.
+- No traducir los campos al inglés.
+- No crear modelos de productos duplicados.
+- No agregar campos obligatorios que puedan generar incompatibilidades.
+- No modificar el esquema sin justificar técnicamente el cambio y consultar previamente.
+
+### Estado de la base de datos
+
+La aplicación utiliza una nueva base de MongoDB Atlas llamada `muebleria`, actualmente vacía.
+
+Por lo tanto:
+
+- No asumir que existen productos ni documentos de los sprints anteriores.
+- No intentar recuperar datos que no están disponibles.
+- Definir los modelos necesarios en Mongoose.
+- No crear colecciones manualmente desde Atlas: MongoDB las generará al insertar documentos.
+- Si hacen falta productos de prueba, proponer un seed de desarrollo separado y claramente identificado.
+- No cargar datos ficticios en producción.
+- No modificar ni mostrar credenciales almacenadas en `.env`.
+- Mantener `.env` excluido de Git y utilizar `.env.example` para documentar las variables necesarias.
+
+Antes de comenzar la implementación, informar si el modelo Product existente necesita alguna adaptación. No realizar cambios incompatibles sin autorización.
+
 ## Rol y límites
 Actuá como implementador. El usuario utiliza ChatGPT como auditor independiente. No declares una tarea terminada por haber escrito código: ejecutá pruebas y reportá resultados reales.
 

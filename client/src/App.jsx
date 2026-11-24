@@ -17,6 +17,7 @@ import MisPedidos from './pages/MisPedidos';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { useCart } from './hooks/useCart';
+import { useCheckout } from './hooks/useCheckout';
 
 // Componente para la página de inicio
 function HomePage({ productos, onAddToCart, onSelectProduct, cargando, error, onReintentar }) {
@@ -164,9 +165,17 @@ function CarritoPage({
   onAddToCart,
   onQuitarUnidad,
   onEliminarProducto,
-  onVaciarCarrito
+  onVaciarCarrito,
+  onPedidoConfirmado
 }) {
   const navigate = useNavigate();
+  const confirmarPedido = useCheckout();
+
+  const handleCheckout = async () => {
+    const pedido = await confirmarPedido();
+    if (pedido) onPedidoConfirmado?.();
+    return pedido;
+  };
 
   return (
     <>
@@ -190,6 +199,7 @@ function CarritoPage({
         onQuitarUnidad={onQuitarUnidad}
         onEliminar={onEliminarProducto}
         onVaciar={onVaciarCarrito}
+        onCheckout={handleCheckout}
       />
     </>
   );
@@ -363,6 +373,7 @@ function AppContent() {
                   onQuitarUnidad={handleQuitarUnidad}
                   onEliminarProducto={handleEliminarProducto}
                   onVaciarCarrito={handleVaciarCarrito}
+                  onPedidoConfirmado={cargarProductos}
                 />
               }
             />

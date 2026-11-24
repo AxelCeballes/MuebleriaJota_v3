@@ -1676,6 +1676,12 @@ h2,
   background: rgba(135, 169, 107, .08);
 }
 
+.cart-checkout-error {
+  animation: none;
+  background: var(--siena-08);
+  border-left-color: var(--siena);
+}
+
 .cart-buy {
   animation: cart-buy-enter .45s ease-out both;
   color: var(--texto);

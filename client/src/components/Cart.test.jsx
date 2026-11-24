@@ -31,6 +31,7 @@ const crearProps = (overrides = {}) => ({
   onQuitarUnidad: vi.fn(),
   onEliminar: vi.fn(),
   onVaciar: vi.fn(),
+  onCheckout: vi.fn().mockResolvedValue({ _id: '650000000000000000000099' }),
   ...overrides,
 });
 
@@ -149,14 +150,49 @@ describe('Cart', () => {
     expect(props.onNavigate).toHaveBeenCalledWith('catalogo');
   });
 
-it('muestra el aviso demostrativo al hacer clic en COMPRAR', async () => {
+  it('confirma el pedido con onCheckout y muestra el número recibido', async () => {
     const user = userEvent.setup();
     const props = crearProps();
     render(<Cart {...props} />);
+
     await user.click(screen.getByRole('button', { name: /COMPRAR/i }));
-    await screen.findByText('Esta demo no procesa pagos ni confirma pedidos.');
-});
-  it('vacía el carrito y comprueba que el botón COMPRAR sigue activo y no muestra el aviso', async () => {
+
+    expect(props.onCheckout).toHaveBeenCalledTimes(1);
+    expect(await screen.findByRole('status')).toHaveTextContent('Pedido confirmado.');
+    expect(screen.getByRole('status')).toHaveTextContent('000099');
+  });
+
+  it('muestra el error del servidor sin perder el carrito', async () => {
+    const user = userEvent.setup();
+    const props = crearProps({
+      onCheckout: vi.fn().mockRejectedValue(new Error('No hay stock suficiente de "Sillón".')),
+    });
+    render(<Cart {...props} />);
+
+    await user.click(screen.getByRole('button', { name: /COMPRAR/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No hay stock suficiente de "Sillón".',
+    );
+    expect(screen.getByText('Sillón')).toBeInTheDocument();
+    expect(screen.queryByText(/Pedido confirmado/)).not.toBeInTheDocument();
+  });
+
+  it('deshabilita COMPRAR mientras se envía el pedido', async () => {
+    const user = userEvent.setup();
+    let resolver;
+    const props = crearProps({
+      onCheckout: vi.fn(() => new Promise((resolve) => { resolver = resolve; })),
+    });
+    render(<Cart {...props} />);
+
+    await user.click(screen.getByRole('button', { name: /COMPRAR/i }));
+
+    expect(screen.getByRole('button', { name: /PROCESANDO/i })).toBeDisabled();
+    resolver({ _id: '650000000000000000000099' });
+  });
+
+  it('delega en onVaciar sin mostrar una confirmación de pedido', async () => {
     const user = userEvent.setup();
     const props = crearProps();
 
@@ -165,11 +201,6 @@ it('muestra el aviso demostrativo al hacer clic en COMPRAR', async () => {
     await user.click(screen.getByRole('button', { name: /VACIAR CARRITO/i }));
 
     expect(props.onVaciar).toHaveBeenCalledTimes(1);
-    expect(
-      screen.getByRole('button', { name: /COMPRAR/i }),
-    ).not.toBeDisabled();
-    expect(
-      screen.queryByText('Esta demo no procesa pagos ni confirma pedidos.'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Pedido confirmado/)).not.toBeInTheDocument();
   });
 });

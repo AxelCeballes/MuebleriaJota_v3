@@ -11,7 +11,7 @@
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
 
-Proyecto académico — Sprint 6
+Proyecto académico — Sprint 8
 
 **[Ver sitio web](https://muebleria-jota-v3.vercel.app/)**
 
@@ -21,7 +21,7 @@ Proyecto académico — Sprint 6
 
 ## 📖 Descripción
 
-**Hermanos Jota** es una aplicación web cliente-servidor para una mueblería de diseño con identidad argentina. El frontend, desarrollado con **React y Vite**, consume una **API REST** construida con **Node.js y Express**. Los productos se guardan en **MongoDB** mediante Mongoose, y las imágenes subidas desde la administración se almacenan en GridFS (`imagenesProductos`). Las rutas de escritura de la API no requieren inicio de sesión.
+**Hermanos Jota** es una aplicación **MERN** (MongoDB, Express, React, Node.js) para una mueblería de diseño con identidad argentina. El frontend, desarrollado con **React y Vite**, consume una **API REST** construida con **Node.js y Express**. Los productos, usuarios y pedidos se guardan en **MongoDB** mediante Mongoose, y las imágenes subidas desde la administración se almacenan en GridFS (`imagenesProductos`). La API exige **JWT** para escribir productos, subir imágenes y crear o consultar pedidos; el registro público siempre crea usuarios `customer`.
 
 ---
 
@@ -45,11 +45,14 @@ Proyecto académico — Sprint 6
 - 🛒 **Carrito** con cantidades, subtotales, total y persistencia en `localStorage`
 - ✉️ **Contacto** con formulario
 - 🔄 Estados de carga y error al consultar la API, con opción para reintentar
-- 🧰 Sección de administración para gestionar productos
+- 🧰 Sección de administración para gestionar productos (sólo usuarios `admin`)
 - ➕ Crear productos, ✏️ editarlos y 🗑️ eliminarlos
 - 🖼️ Subir imágenes desde el dispositivo y guardarlas en MongoDB GridFS
+- 🔐 Registro, login, perfil y sesión persistida con JWT; rutas privadas con retorno al destino
+- 📦 Pedidos reales: el checkout envía ids y cantidades, el servidor calcula precios y descuenta stock
+- 🧾 Historial de pedidos filtrado por usuario autenticado
 
-> El carrito es demostrativo: no procesa pagos ni registra pedidos.
+> No hay pasarela de pagos: el pedido registra la compra, no cobra dinero.
 
 ---
 
@@ -134,9 +137,9 @@ cd backend
 npm run test:watch
 ```
 
-**Resultado de ejecución**:
-- **1 suite aprobada**, **18 tests exitosos** de 18 totales en `backend/tests/product.test.js`.
-- **Cobertura**: operaciones CRUD completas en `/api/productos` (GET, POST, PUT, DELETE), validación de campos obligatorios, IDs con formato no válido, productos inexistentes (404), rechazo de valores negativos o no enteros en precio y stock, y verificación de persistencia al eliminar.
+**Resultado de ejecución verificado (Sprint 8)**:
+- **4 suites aprobadas**, **127 tests exitosos** de 127 totales.
+- **Cobertura**: CRUD de productos y GridFS, registro/login/perfil con bcrypt y JWT, roles `customer`/`admin`, protección de escrituras (`401`/`403`), pedidos con precios calculados en servidor, stock atómico, idempotencia y aislamiento por usuario. Las transacciones se prueban con `MongoMemoryReplSet`; nunca se conecta a Atlas ni a producción.
 
 ### Frontend
 
@@ -156,15 +159,10 @@ cd client
 npm run test:watch
 ```
 
-**Resultado de ejecución**:
-Al ejecutar `npm test`, se evalúan 4 archivos de prueba:
-
-- **Suites que se ejecutan y pasan correctamente (3 suites, 45 tests exitosos en total)**:
-  - `src/utils/stock.test.js`: **20 tests pasados** (cálculo de stock disponible, stock máximo y validaciones en operaciones de compra).
-  - `src/utils/api.test.js`: **15 tests pasados** (resolución de URLs de imágenes estáticas y de GridFS, manejo de fallbacks y helpers de API).
-  - `src/components/Cart.test.jsx`: **10 tests pasados** (renderizado de productos, incremento/decremento de cantidades, eliminación y cálculo de subtotales/total).
-- **Suite con error de ejecución (1 suite, 0 tests ejecutados)**:
-  - `src/pages/AdminCrearProducto.test.jsx`: **Falla en la fase de transformación/parseo** con un error de sintaxis en `vite:oxc` (`Expected ',' or ')' but found '}'`), lo que causa que la ejecución termine con código de error. **Este archivo no aporta cobertura ejecutada actualmente**.
+**Resultado de ejecución verificado (Sprint 8)**:
+- **11 archivos de prueba**, **79 tests exitosos** de 79 totales. Sin suites fallidas ni omitidas.
+- **Cobertura**: stock y utilidades, carrito y checkout, contextos de autenticación y carrito, `ProtectedRoute`, login/registro, navbar condicional, historial de pedidos y administración.
+- `npm run lint` termina sin errores (dos advertencias conocidas de `react(set-state-in-effect)` en `App.jsx` y `MisPedidos.jsx`) y `npm run build` genera `dist` correctamente.
 
 ---
 
@@ -175,9 +173,12 @@ Al ejecutar `npm test`, se evalúan 4 archivos de prueba:
 | Variable | Descripción | Requerido |
 |---|---|---|
 | `MONGODB_URI` | URI de conexión a MongoDB (obligatoria). En producción usar Atlas. | ✅ Sí |
+| `JWT_SECRET` | Secreto para firmar y verificar JWT. Sin valor por defecto: el backend no inicia si falta. Nunca exponer al frontend. | ✅ Sí |
+| `JWT_EXPIRES_IN` | Vigencia del token: `1d` (por defecto), `12h`, `30m`, `1w` o segundos. | No |
+| `BCRYPT_SALT_ROUNDS` | Rondas de bcrypt, entre 10 y 15 (por defecto 12). | No |
 | `PORT` | Puerto HTTP del backend (opcional, por defecto 3000). | No |
-| `NODE_ENV` | Entorno de ejecución. Valores posibles: `development` y `production` (por defecto `development`). | No |
-| `CORS_ORIGINS` | Orígenes permitidos por CORS en producción, separados por coma. Ejemplo: `https://muebleria-jota-v3.vercel.app`. | No (en desarrollo usa los orígenes locales) |
+| `NODE_ENV` | Entorno de ejecución: `development` o `production` (por defecto `development`). | No |
+| `CORS_ORIGINS` | Orígenes permitidos en producción, separados por coma. Ejemplo: `https://muebleria-jota-v3.vercel.app`. | No (en desarrollo usa los orígenes locales) |
 
 ### Frontend (`client/.env.example`)
 
@@ -214,25 +215,65 @@ El esquema Mongoose en `backend/models/Product.js` define los siguientes campos:
 
 Base local: `http://localhost:3000/api`.
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/health` | Estado de la API y conexión a MongoDB |
-| `GET` | `/productos` | Listar productos (ordenados por fecha de creación descendente) |
-| `GET` | `/productos/:id` | Obtener un producto por ID |
-| `POST` | `/productos` | Crear un producto |
-| `PUT` | `/productos/:id` | Actualizar un producto |
-| `DELETE` | `/productos/:id` | Eliminar un producto y su imagen asociada en GridFS |
-| `POST` | `/imagenes` | Subir una imagen (campo `imagen`, valida JPG/PNG/WebP, límite 3 MB) |
-| `GET` | `/imagenes/:id` | Servir un archivo de GridFS |
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| `GET` | `/health` | Público | Estado de la API y conexión a MongoDB |
+| `GET` | `/productos` | Público | Listar productos (ordenados por fecha de creación descendente) |
+| `GET` | `/productos/:id` | Público | Obtener un producto por ID |
+| `POST` | `/productos` | Admin | Crear un producto |
+| `PUT` | `/productos/:id` | Admin | Actualizar un producto |
+| `DELETE` | `/productos/:id` | Admin | Eliminar un producto y su imagen asociada en GridFS |
+| `POST` | `/imagenes` | Admin | Subir una imagen (campo `imagen`, JPG/PNG/WebP, máximo 3 MB) |
+| `GET` | `/imagenes/:id` | Público | Servir un archivo de GridFS |
+| `POST` | `/auth/register` | Público | Registrar usuario `customer` (devuelve token) |
+| `POST` | `/auth/login` | Público | Iniciar sesión (devuelve token) |
+| `GET` | `/auth/me` | Autenticado | Perfil del usuario del token |
+| `POST` | `/pedidos` | Autenticado | Crear pedido con `{ items: [{ producto, cantidad }] }` y `Idempotency-Key` opcional |
+| `GET` | `/pedidos/mis-pedidos` | Autenticado | Historial del usuario autenticado |
+
+Las rutas protegidas exigen `Authorization: Bearer <token>`. Las de administración requieren además el rol `admin`.
 
 **Respuestas de error esperadas**:
 
-- `400 Bad Request`: Datos requeridos ausentes, valores no válidos (precio/stock negativos o no enteros), formato de ID incorrecto (`ObjectId` inválido), JSON inválido en el cuerpo de la petición o error de índice duplicado (código 11000 de MongoDB).
+- `400 Bad Request`: Datos requeridos ausentes, valores no válidos (precio/stock negativos o no enteros), formato de ID incorrecto (`ObjectId` inválido), JSON inválido, email duplicado o datos de pedido inválidos.
+- `401 Unauthorized`: Falta el token, es inválido/expiró o el usuario ya no existe.
+- `403 Forbidden`: El usuario autenticado no tiene el rol `admin` para esa operación.
 - `404 Not Found`: Producto no encontrado, imagen no encontrada o ruta no existente.
+- `409 Conflict`: Stock insuficiente al crear un pedido o envío idempotente todavía en procesamiento.
 - `413 Payload Too Large`: La imagen supera el límite máximo de 3 MB.
 - `415 Unsupported Media Type`: Formato de imagen no admitido (sólo JPG, PNG o WebP) o archivo corrupto.
 - `500 Internal Server Error`: Error interno no controlado del servidor.
 - `503 Service Unavailable`: Servidor activo pero conexión con la base de datos no disponible (en `/api/health`).
+
+---
+
+## 🔄 Flujo MERN (de la request al pedido)
+
+1. **React (cliente)**: catálogo y carrito viven en `App.jsx` y `CartContext`; `AuthContext` guarda el JWT en `localStorage` (`auth_token`) y lo valida con `GET /api/auth/me` al recargar.
+2. **Rutas protegidas**: `ProtectedRoute` espera la validación de sesión y redirige a `/login` conservando el destino. El navbar muestra enlaces según sesión y rol.
+3. **API (Express)**: `app.js` aplica CORS (con `Authorization`), limita el JSON a 20 kb y monta `/api/productos`, `/api/imagenes`, `/api/auth` y `/api/pedidos`.
+4. **Autenticación y autorización**: `requireAuth` verifica firma, expiración y existencia del usuario; `requireRole('admin')` protege escrituras de catálogo e imágenes. El `userId` nace del token, nunca del cuerpo.
+5. **Mongoose y Atlas**: los controladores usan los modelos `Product`, `User` y `Order`; las imágenes se guardan en GridFS (`imagenesProductos`).
+6. **Checkout**: el cliente envía ids y cantidades con Bearer e `Idempotency-Key`; el servidor recarga los productos, calcula precios y total, descuenta stock dentro de una transacción y guarda un snapshot en `Order`.
+7. **Respuesta**: con `201` el cliente vacía el carrito, recarga el catálogo y muestra el número de pedido; ante `400`/`401`/`403`/`409` o error de red, conserva el carrito y muestra el mensaje en español.
+
+### Auditoría y limitaciones conocidas
+
+- **JWT en `localStorage`**: cumple el requisito académico de persistencia y funciona con `Authorization: Bearer`, pero es susceptible a XSS. No se inserta HTML no confiable y el secreto de firma existe sólo en el backend. Para un entorno real, evaluar cookies `HttpOnly`/`Secure` con protección CSRF.
+- **Sin límite de intentos**: `/api/auth/login` y `/api/auth/register` no aplican rate limiting; queda como mejora pendiente para producción.
+- **Sin pasarela de pagos**: el pedido registra la compra académica, no cobra dinero.
+- **Despliegue**: las URLs y las variables remotas se configuran en la Fase 7; este repositorio no contiene secretos ni archivos `.env`.
+
+### Primer administrador
+
+El registro público siempre crea usuarios `customer`. Para promover al primer administrador, con `MONGODB_URI` configurada:
+
+```bash
+cd backend
+node scripts/promoteAdmin.js email-del-usuario@example.com
+```
+
+No hay campo de rol libre en el formulario de registro.
 
 ---
 
@@ -248,7 +289,7 @@ Crear un servicio Web conectado al repositorio y configurar:
 | Build Command | `npm ci` |
 | Start Command | `npm start` |
 
-Agregar en **Environment** las variables `MONGODB_URI`, `NODE_ENV=production` y `CORS_ORIGINS` con el dominio del frontend (`https://muebleria-jota-v3.vercel.app`). Render asigna `PORT` automáticamente. MongoDB Atlas debe permitir conexiones desde el servicio.
+Agregar en **Environment** las variables `MONGODB_URI`, `JWT_SECRET`, `NODE_ENV=production`, `CORS_ORIGINS` con el dominio real del frontend y, si se desea ajustar, `JWT_EXPIRES_IN` y `BCRYPT_SALT_ROUNDS`. Render asigna `PORT` automáticamente. MongoDB Atlas debe permitir conexiones desde el servicio. Nunca exponer `JWT_SECRET` como variable `VITE_*` ni guardarlo en el repositorio.
 
 Probar: `https://<servicio>.onrender.com/api/health` debe devolver `"status": "ok"` y `"mongodb": "connected"`.
 
@@ -264,26 +305,30 @@ Conectar el repositorio y establecer **Root Directory** en `client`. Configurar 
 MuebleriaJota_v3/
 ├── README.md
 ├── AGENTS.md
+├── docs/                         # Plan del Sprint 8 y protocolo de trabajo
 ├── backend/
-│   ├── app.js                    # Middleware, rutas y manejo de errores
-│   ├── index.js                  # Inicio del servidor y conexión a MongoDB
-│   ├── config/                   # Base de datos y CORS
-│   ├── controllers/              # Lógica de productos e imágenes
-│   ├── middleware/               # Carga y validación de imágenes
-│   ├── models/                   # Esquema de productos
-│   ├── routes/                   # Rutas de la API
-│   ├── scripts/                  # Migración de productos (seed)
+│   ├── app.js                    # CORS, rutas y manejo de errores
+│   ├── index.js                  # Validación de auth, MongoDB y servidor
+│   ├── config/                   # Base de datos, CORS y variables de JWT/bcrypt
+│   ├── controllers/              # Productos, imágenes, auth y pedidos
+│   ├── middleware/               # JWT, roles y carga de imágenes
+│   ├── models/                   # Product, User y Order
+│   ├── routes/                   # /api/productos, /imagenes, /auth y /pedidos
+│   ├── scripts/                  # Migración de productos y promoción a admin
 │   ├── services/                 # Almacenamiento GridFS
-│   └── tests/                    # Tests automatizados con Jest
+│   └── tests/                    # Suites Jest con MongoMemoryReplSet
 └── client/
     ├── public/img/               # Imágenes y logos
     └── src/
-        ├── App.jsx               # Rutas, catálogo y estado del carrito
-        ├── index.css             # Estilos (variables CSS, componentes)
+        ├── App.jsx               # Rutas, catálogo y composición de providers
+        ├── index.css             # Sistema de diseño y estilos de pantallas
         ├── main.jsx              # Punto de entrada React
-        ├── components/           # Catálogo, tarjetas, detalle, navegación, carrito, contacto
-        ├── pages/                # Administración y páginas de la tienda
-        └── utils/                # Formato de precio, búsqueda, resolución de URL de imágenes
+        ├── components/           # Catálogo, carrito, nav y ProtectedRoute
+        ├── context/              # AuthContext, CartContext y sus objetos
+        ├── hooks/                # useAuth, useCart y useCheckout
+        ├── pages/                # Admin, login, registro, perfil y pedidos
+        ├── services/             # Cliente HTTP del checkout
+        └── utils/                # Formato, stock y helpers de API
 ```
 
 ---

@@ -232,3 +232,52 @@ El proyecto utiliza una nueva base de datos MongoDB Atlas llamada `muebleria`, q
 - Este plan: `docs/SPRINT-8-PLAN.md`.
 - Instrucciones operativas para OpenCode: `docs/OPENCODE.md`.
 - Actualizar `AGENTS.md` y `README.md` al completar cada fase y al cerrar Sprint 8.
+
+## 9. Confirmación de avance por fase
+
+### Regla de cierre
+
+Una fase se considera **Completada** sólo si se cumplen todos estos puntos:
+
+1. El código y la documentación de la fase están implementados.
+2. Los tests aplicables se ejecutaron realmente y pasaron, con comando y resultado registrados.
+3. No quedan fallos conocidos sin resolver dentro del alcance de la fase.
+4. Los cambios están commiteados y publicados en la rama de trabajo.
+5. La evidencia queda registrada en la tabla de estado de este documento.
+
+Si falta cualquiera de estos puntos, la fase queda **En curso** o **Pendiente**. Escribir código no alcanza para marcarla como terminada.
+
+### Criterios mínimos por fase
+
+- **Fase 0 — Preparación:** dependencias instaladas con lockfile en backend y cliente; tests, lint y build iniciales ejecutados; fallos preexistentes registrados.
+- **Fase 1 — Auth backend:** registro, login y perfil; hash bcrypt; JWT con expiración; `401`/`403`; `JWT_SECRET` obligatorio al iniciar; tests de auth, tokens y roles.
+- **Fase 2 — Administración protegida:** escritura de productos e imágenes sólo para admin; lecturas públicas; tests `401` anónimo, `403` customer, admin autorizado y regresión CRUD.
+- **Fase 3 — Pedidos backend:** modelo `Order`; precios, total y stock calculados en servidor; pedido asociado al usuario autenticado; tests de stock, payload manipulado, aislamiento por usuario y consistencia.
+- **Fase 4 — Frontend auth:** `AuthContext`, `CartContext`, login/registro/perfil, restauración de sesión, `ProtectedRoute`, navbar condicional y tests.
+- **Fase 5 — Checkout:** pedido real con Bearer; carrito se vacía sólo tras confirmación; manejo de errores y tests de checkout.
+- **Fase 6 — Regresión:** suites completas, lint, build, revisión de seguridad/CORS/errores y documentación actualizada.
+- **Fase 7 — Despliegue:** Render, Vercel y Atlas configurados sin secretos en el repositorio; health check y flujos principales verificados.
+
+### Estado actual
+
+Última actualización: 2026-11-24. Rama de trabajo: `MuebleriaJota_v4-Sprint-7/8`.
+
+| Fase | Estado | Evidencia verificada | Commits |
+|---|---|---|---|
+| Fase 0 — Preparación | Completada | `npm ci` en backend y cliente; backend 18/18 tests; frontend 45/45 tests; lint sin errores (1 warning preexistente); build OK; Atlas conecta y `muebleria` está vacía; sin cambios en el repositorio | — |
+| Fase 1 — Auth backend | Completada | Registro, login y `/me`; bcrypt; JWT; roles; script de admin; validación de 72 bytes en registro y login; `JWT_EXPIRES_IN` normalizado a segundos; 77/77 tests al cierre | `516bab7`, `9eac22c` |
+| Fase 2 — Administración protegida | Completada | Escritura de productos y subida de imágenes protegidas; lecturas públicas; `401`/`403`/admin; 91/91 tests (3 suites) al cierre | `a755bb9` |
+| Fase 3 — Pedidos backend | Pendiente | Sin modelo, controlador ni rutas de pedidos | — |
+| Fase 4 — Frontend auth | Pendiente | Sin contextos, rutas de login/registro/perfil ni `ProtectedRoute` | — |
+| Fase 5 — Checkout | Pendiente | El carrito sigue siendo demostrativo y no crea pedidos | — |
+| Fase 6 — Regresión | Pendiente | Se ejecutará al cerrar las fases funcionales | — |
+| Fase 7 — Despliegue | Pendiente | Sin cambios de servicios ni variables remotas | — |
+
+### Cómo actualizar esta sección
+
+Al terminar una fase:
+
+1. Ejecutar los comandos de verificación correspondientes y copiar el resultado real.
+2. Actualizar la fila de la fase con estado, evidencia y commits.
+3. Si hay tests fallidos o puntos sin resolver, mantener la fase como **En curso** y detallar el bloqueo.
+4. Commitear y pushear la actualización junto con los cambios de la fase.

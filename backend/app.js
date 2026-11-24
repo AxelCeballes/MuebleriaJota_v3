@@ -6,6 +6,7 @@ const corsOptions = require('./config/cors');
 const productRoutes = require('./routes/productRoutes');
 const imageRoutes = require('./routes/imageRoutes');
 const authRoutes = require('./routes/authRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.get('/api/health', (request, response) => {
 app.use('/api/imagenes', imageRoutes);
 app.use('/api/productos', productRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/pedidos', orderRoutes);
 
 app.use((request, response) => {
   response.status(404).json({

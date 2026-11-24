@@ -6,7 +6,7 @@ process.env.JWT_EXPIRES_IN = '1d';
 process.env.BCRYPT_SALT_ROUNDS = '10';
 
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+const { MongoMemoryReplSet } = require('mongodb-memory-server');
 const { connectDB, disconnectDB } = require('../config/db');
 
 const TEST_DB_NAME = 'muebleria-jota-test';
@@ -28,8 +28,14 @@ const verificarUriDePrueba = (uri) => {
 };
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create({
-    instance: { dbName: TEST_DB_NAME },
+  // Los pedidos usan transacciones; MongoMemoryReplSet emula un replica set
+  // equivalente al que ofrece MongoDB Atlas.
+  mongoServer = await MongoMemoryReplSet.create({
+    replSet: {
+      count: 1,
+      dbName: TEST_DB_NAME,
+      storageEngine: 'wiredTiger',
+    },
   });
 
   const uri = mongoServer.getUri(TEST_DB_NAME);

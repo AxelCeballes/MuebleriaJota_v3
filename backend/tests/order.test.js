@@ -408,6 +408,114 @@ describe('POST /api/pedidos — creación', () => {
   });
 });
 
+describe('POST /api/pedidos — precisión monetaria', () => {
+  test('normaliza precio con más de 2 decimales y lo guarda con 2 decimales', async () => {
+    const { authorization } = await crearUsuarioConToken();
+    const producto = await crearProducto({ nombre: 'Precisión', precio: 100.555, stock: 5 });
+
+    const respuesta = await enviarPedido({
+      authorization,
+      body: { items: [{ producto: producto._id.toString(), cantidad: 1 }] },
+    });
+
+    expect(respuesta.status).toBe(201);
+    // El precio se redondea al céntimo más cercano (100.555 → 100.56)
+    expect(respuesta.body.data.items[0].precioUnitario).toBe(100.56);
+    // El total debe coincidir exactamente con el precio unitario × cantidad
+    expect(respuesta.body.data.total).toBe(100.56);
+    // Un solo ítem: total = precioUnitario * cantidad
+    expect(respuesta.body.data.total).toBe(
+      respuesta.body.data.items[0].precioUnitario * respuesta.body.data.items[0].cantidad,
+    );
+  });
+
+  test('total coincide exactamente con la suma de los subtotales de los productos', async () => {
+    const { authorization } = await crearUsuarioConToken();
+    // Precios con 2 decimales exactos para que la suma sea exacta
+    const [prod1, prod2] = await Product.create([
+      { ...productoBase, nombre: 'A', precio: 10.00, stock: 10 },
+      { ...productoBase, nombre: 'B', precio: 25.50, stock: 10 },
+    ]);
+
+    const respuesta = await enviarPedido({
+      authorization,
+      body: {
+        items: [
+          { producto: prod1._id.toString(), cantidad: 3 },
+          { producto: prod2._id.toString(), cantidad: 2 },
+        ],
+      },
+    });
+
+    expect(respuesta.status).toBe(201);
+    const subtotal1 = respuesta.body.data.items[0].precioUnitario * respuesta.body.data.items[0].cantidad;
+    const subtotal2 = respuesta.body.data.items[1].precioUnitario * respuesta.body.data.items[1].cantidad;
+    const sumaEsperada = subtotal1 + subtotal2;
+
+    expect(respuesta.body.data.total).toBeCloseTo(sumaEsperada, 2);
+    expect(respuesta.body.data.total).toEqual(sumaEsperada);
+  });
+
+  test('precios normales de 2 decimales funcionan correctamente', async () => {
+    const { usuario, authorization } = await crearUsuarioConToken({ rol: 'customer' });
+    const { usuario: otroUsuario } = await crearUsuarioConToken({ rol: 'customer' });
+
+    const [sillon, mesa] = await Product.create([
+      { ...productoBase, nombre: 'Sillón', precio: 12345.67, stock: 10 },
+      { ...productoBase, nombre: 'Mesa', precio: 500.1, stock: 5 },
+    ]);
+
+    const respuesta = await enviarPedido({
+      authorization,
+      body: {
+        usuario: otroUsuario._id.toString(),
+        total: 1,
+        estado: 'confirmado',
+        items: [
+          {
+            producto: sillon._id.toString(),
+            cantidad: 2,
+            // No enviar precioUnitario; el servidor lo calcula desde la base.
+          },
+          { producto: mesa._id.toString(), cantidad: 3 },
+        ],
+      },
+    });
+
+    expect(respuesta.status).toBe(201);
+    expect(respuesta.body.message).toBe('Pedido creado correctamente.');
+    expect(respuesta.body.data.usuario).toBe(usuario._id.toString());
+    expect(respuesta.body.data.estado).toBe('pendiente');
+    // 2 × 12345.67 + 3 × 500.1 = 24691.34 + 1500.3 = 26191.64
+    expect(respuesta.body.data.total).toBeCloseTo(26191.64, 2);
+    expect(respuesta.body.data.items).toEqual([
+      {
+        producto: sillon._id.toString(),
+        nombre: 'Sillón',
+        precioUnitario: 12345.67,
+        cantidad: 2,
+      },
+      {
+        producto: mesa._id.toString(),
+        nombre: 'Mesa',
+        precioUnitario: 500.1,
+        cantidad: 3,
+      },
+    ]);
+
+    const pedidoGuardado = await Order.findById(respuesta.body.data._id).lean();
+    expect(pedidoGuardado.usuario.toString()).toBe(usuario._id.toString());
+    expect(pedidoGuardado.total).toBeCloseTo(26191.64, 2);
+    expect(pedidoGuardado.estado).toBe('pendiente');
+    expect(pedidoGuardado.items).toHaveLength(2);
+
+    const sillonPersistido = await Product.findById(sillon._id).lean();
+    const mesaPersistida = await Product.findById(mesa._id).lean();
+    expect(sillonPersistido.stock).toBe(8);
+    expect(mesaPersistida.stock).toBe(2);
+  });
+});
+
 describe('GET /api/pedidos/mis-pedidos', () => {
   test('devuelve 401 sin token', async () => {
     const respuesta = await consultarMisPedidos();

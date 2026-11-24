@@ -21,6 +21,15 @@ const crearErrorDePedido = (status, message, errors) => {
 
 const redondearCentavos = (valor) => Math.round(valor * 100);
 
+// Normaliza un precio a 2 decimales y devuelve su valor en centavos (entero).
+// Ej: 150.256 -> 15026 centavos; 150.2 -> 15000 centavos.
+// Este valor entero se usa para el total; al dividir entre 100 se obtiene el
+// precioUnitario con exactamente 2 decimales, evitando errores de precision.
+const normalizarPrecioaCentavos = (precio) => {
+  const centavos = redondearCentavos(precio);
+  return centavos; // entero, se divide entre 100 para mostrar 2 decimales
+};
+
 const serializarPedido = (pedido) => ({
   _id: pedido._id.toString(),
   usuario: pedido.usuario.toString(),
@@ -203,12 +212,18 @@ const crearPedido = asyncHandler(async (request, response) => {
           );
         }
 
+        // Normaliza el precio a 2 decimales usando centavos enteros.
+        // Esto garantiza que el precioUnitario guardado y el cálculo del total
+        // Siempre se usa el mismo valor para el total y el precioUnitario, evitando
+        // errores de precision de punto flotante.
+        const precioUnitarioCentavos = normalizarPrecioaCentavos(producto.precio);
+
         // El precio y el total se calculan siempre desde la base, nunca desde el cliente.
-        totalEnCentavos += redondearCentavos(producto.precio) * item.cantidad;
+        totalEnCentavos += precioUnitarioCentavos * item.cantidad;
         lineas.push({
           producto: producto._id,
           nombre: producto.nombre,
-          precioUnitario: producto.precio,
+          precioUnitario: precioUnitarioCentavos / 100,
           cantidad: item.cantidad,
         });
       });

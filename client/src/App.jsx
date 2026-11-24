@@ -7,9 +7,16 @@ import ProductDetail from './components/ProductDetail';
 import ContactForm from './components/ContactForm';
 import Cart from './components/Cart';
 import ScrollToTop from './components/ScrollToTop';
+import ProtectedRoute from './components/ProtectedRoute';
 import AdminGestion from './pages/AdminGestion';
 import NotFound from './pages/NotFound';
-import { validarAgregadoAlCarrito } from './utils/stock';
+import Login from './pages/Login';
+import Registro from './pages/Registro';
+import Perfil from './pages/Perfil';
+import MisPedidos from './pages/MisPedidos';
+import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
+import { useCart } from './hooks/useCart';
 
 // Componente para la página de inicio
 function HomePage({ productos, onAddToCart, onSelectProduct, cargando, error, onReintentar }) {
@@ -241,73 +248,16 @@ function AppContent() {
     return () => controlador.abort();
   }, [solicitarProductos]);
 
-  // Registro de actividad del proyecto para dejar seguimiento en GitHub.
-  // Clave de almacenamiento en localStorage
-  const STORAGE_KEY = 'carrito';
-
-  // Los productos usan ObjectId de MongoDB como string. También se toleran ids
-  // numéricos antiguos guardados en localStorage, pero nunca se convierten con Number().
-  const esIdValido = (id) =>
-    (typeof id === 'string' && id.trim() !== '') ||
-    (Number.isInteger(id) && id > 0);
-
-  // Estado del carrito: inicializado desde localStorage de manera segura
-  const [carrito, setCarrito] = useState(() => {
-    try {
-      const guardado = localStorage.getItem(STORAGE_KEY);
-      if (guardado) {
-        const parseado = JSON.parse(guardado);
-        if (Array.isArray(parseado)) {
-          return parseado.filter(esIdValido).map(String);
-        }
-      }
-    } catch (err) {
-      console.error('Error al leer el carrito desde localStorage:', err);
-    }
-    return [];
-  });
-
-  // Guardar en localStorage cada vez que el carrito cambia
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(carrito));
-    } catch (err) {
-      console.error('Error al guardar el carrito en localStorage:', err);
-    }
-  }, [carrito]);
-
-  // Acciones del carrito
-  // La validación de stock se centraliza acá: todos los componentes que
-  // agregan unidades reciben el resultado para poder mostrar el mensaje.
-  const handleAddToCart = (id) => {
-    const producto = productos.find((item) => String(item._id) === String(id));
-    const cantidadEnCarrito = carrito.filter((item) => String(item) === String(id)).length;
-    const resultado = validarAgregadoAlCarrito(producto, cantidadEnCarrito);
-
-    if (resultado.ok) {
-      setCarrito((prev) => [...prev, id]);
-    }
-
-    return resultado;
-  };
-
-  const handleQuitarUnidad = (id) => {
-    setCarrito((prev) => {
-      const index = prev.indexOf(id);
-      if (index === -1) return prev;
-      const nuevo = [...prev];
-      nuevo.splice(index, 1);
-      return nuevo;
-    });
-  };
-
-  const handleEliminarProducto = (id) => {
-    setCarrito((prev) => prev.filter((item) => item !== id));
-  };
-
-  const handleVaciarCarrito = () => {
-    setCarrito([]);
-  };
+  // El carrito vive en CartContext; acá sólo se conserva el estado del catálogo.
+  const {
+    itemsCarrito,
+    totalUnidades,
+    totalCarrito,
+    agregarProducto: handleAddToCart,
+    quitarUnidad: handleQuitarUnidad,
+    eliminarProducto: handleEliminarProducto,
+    vaciarCarrito: handleVaciarCarrito,
+  } = useCart();
 
   const handleSelectProduct = (producto) => {
     navigate(`/productos/${producto._id}`);
@@ -326,111 +276,113 @@ function AppContent() {
     ]);
   };
 
-  // Cálculo de resumen del carrito
-  const cantidadesCarrito = carrito.reduce((acc, id) => {
-    const key = String(id);
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {});
-
-  // Los productos inexistentes (por ejemplo, un id guardado de una versión
-  // anterior del catálogo) se descartan de la vista y no se cuentan como
-  // unidades: el contador y el total tienen que coincidir con lo que se ve.
-  const itemsCarrito = Object.keys(cantidadesCarrito)
-    .map((id) => {
-      const prod = productos.find((p) => String(p._id) === id);
-      return prod ? { producto: prod, cantidad: cantidadesCarrito[id] } : null;
-    })
-    .filter(Boolean);
-
-  const totalUnidades = itemsCarrito.reduce((sum, item) => sum + item.cantidad, 0);
-
-  const totalCarrito = itemsCarrito.reduce(
-    (sum, item) => sum + item.producto.precio * item.cantidad,
-    0
-  );
-
   return (
-    <div className="App">
-      <ScrollToTop />
-      <Navbar cantidadCarrito={totalUnidades} />
+    <CartProvider productos={productos}>
+      <div className="App">
+        <ScrollToTop />
+        <Navbar cantidadCarrito={totalUnidades} />
 
-      <main>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <HomePage
-                productos={productos}
-                onAddToCart={handleAddToCart}
-                onSelectProduct={handleSelectProduct}
-                cargando={cargando}
-                error={error}
-                onReintentar={() => cargarProductos()}
-              />
-            }
-          />
-          <Route
-            path="/productos"
-            element={
-              <ProductosPage
-                productos={productos}
-                onAddToCart={handleAddToCart}
-                onSelectProduct={handleSelectProduct}
-                cargando={cargando}
-                error={error}
-                onReintentar={() => cargarProductos()}
-              />
-            }
-          />
-          <Route
-            path="/productos/:id"
-            element={
-              <ProductoDetallePage
-                productos={productos}
-                onAddToCart={handleAddToCart}
-                cargando={cargando}
-                error={error}
-                onReintentar={() => cargarProductos()}
-              />
-            }
-          />
-          <Route
-            path="/contacto"
-            element={<ContactoPage />}
-          />
-          <Route
-            path="/admin/crear-producto"
-            element={<AdminGestion onProductoGuardado={handleProductoCreado} />}
-          />
-          <Route
-            path="/carrito"
-            element={
-              <CarritoPage
-                itemsCarrito={itemsCarrito}
-                totalUnidades={totalUnidades}
-                totalCarrito={totalCarrito}
-                onAddToCart={handleAddToCart}
-                onQuitarUnidad={handleQuitarUnidad}
-                onEliminarProducto={handleEliminarProducto}
-                onVaciarCarrito={handleVaciarCarrito}
-              />
-            }
-          />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </main>
+        <main>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <HomePage
+                  productos={productos}
+                  onAddToCart={handleAddToCart}
+                  onSelectProduct={handleSelectProduct}
+                  cargando={cargando}
+                  error={error}
+                  onReintentar={() => cargarProductos()}
+                />
+              }
+            />
+            <Route
+              path="/productos"
+              element={
+                <ProductosPage
+                  productos={productos}
+                  onAddToCart={handleAddToCart}
+                  onSelectProduct={handleSelectProduct}
+                  cargando={cargando}
+                  error={error}
+                  onReintentar={() => cargarProductos()}
+                />
+              }
+            />
+            <Route
+              path="/productos/:id"
+              element={
+                <ProductoDetallePage
+                  productos={productos}
+                  onAddToCart={handleAddToCart}
+                  cargando={cargando}
+                  error={error}
+                  onReintentar={() => cargarProductos()}
+                />
+              }
+            />
+            <Route
+              path="/contacto"
+              element={<ContactoPage />}
+            />
+            <Route path="/login" element={<Login />} />
+            <Route path="/registro" element={<Registro />} />
+            <Route
+              path="/perfil"
+              element={
+                <ProtectedRoute>
+                  <Perfil />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mis-pedidos"
+              element={
+                <ProtectedRoute>
+                  <MisPedidos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/crear-producto"
+              element={
+                <ProtectedRoute roles={['admin']}>
+                  <AdminGestion onProductoGuardado={handleProductoCreado} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/carrito"
+              element={
+                <CarritoPage
+                  itemsCarrito={itemsCarrito}
+                  totalUnidades={totalUnidades}
+                  totalCarrito={totalCarrito}
+                  onAddToCart={handleAddToCart}
+                  onQuitarUnidad={handleQuitarUnidad}
+                  onEliminarProducto={handleEliminarProducto}
+                  onVaciarCarrito={handleVaciarCarrito}
+                />
+              }
+            />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </CartProvider>
   );
 }
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

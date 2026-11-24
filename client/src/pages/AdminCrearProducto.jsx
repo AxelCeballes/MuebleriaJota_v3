@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { resolverImagenUrl } from '../utils/format';
-import { esProductoValido, leerJsonDeRespuesta } from '../utils/api';
+import { esProductoValido, headersConToken, leerJsonDeRespuesta } from '../utils/api';
+import { useAuth } from '../hooks/useAuth';
 
 const categorias = [
   'Aparadores',
@@ -31,6 +32,7 @@ const erroresIniciales = {
 
 function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const redireccionRef = useRef(null);
   const [formData, setFormData] = useState(() => initialProduct ? {
     nombre: initialProduct.nombre || '',
@@ -263,6 +265,7 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
         datosImagen.append('imagen', imagenArchivo);
         const respuestaImagen = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/imagenes', {
           method: 'POST',
+          headers: headersConToken(token),
           body: datosImagen,
         });
         const resultadoImagen = await leerJsonDeRespuesta(respuestaImagen);
@@ -274,9 +277,7 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
 
       const respuesta = await fetch((import.meta.env.VITE_API_BASE || '') + '/api/productos' + (initialProduct ? `/${initialProduct._id}` : ''), {
         method: initialProduct ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headersConToken(token, { 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
 

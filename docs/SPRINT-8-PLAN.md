@@ -33,6 +33,39 @@ Este documento describe el estado observado en la rama `main` al iniciar el aná
 - CORS permite `Content-Type`, pero no declara `Authorization`.
 - La documentación operativa presenta inconsistencias: `AGENTS.md` describe el test del backend como marcador aunque `backend/package.json` configura Jest; README menciona una prueba AdminCrearProducto que no aparece en el árbol actual. Verificar los comandos reales y actualizar documentación con resultados ejecutados.
 
+## Compatibilidad del modelo Product y estado de la base de datos
+
+La versión anterior del proyecto, correspondiente a los sprints 5 y 6, utiliza el siguiente modelo de productos:
+
+| Campo | Tipo | Restricción |
+|---|---|---|
+| `nombre` | String | Obligatorio |
+| `descripcion` | String | Opcional |
+| `precio` | Number | Obligatorio |
+| `stock` | Number | Opcional |
+| `imagenUrl` | String | Opcional |
+
+Este esquema debe mantenerse como referencia de compatibilidad para el Sprint 8.
+
+**Requisitos:**
+- Conservar los nombres originales de los campos y sus tipos.
+- No reemplazar `nombre` por `name`, `imagenUrl` por `image` ni crear un segundo modelo de productos.
+- El catálogo, detalle, carrito, administración y checkout deben utilizar esta misma estructura.
+- La validación de precios y stock debe realizarse en el backend.
+- Los pedidos deben guardar una copia de los datos relevantes del producto al momento de la compra, especialmente nombre y precio unitario.
+- No modificar el esquema Product sin una justificación técnica, evaluación de compatibilidad y documentación previa.
+
+### Estado de MongoDB Atlas
+
+El proyecto utiliza una nueva base de datos MongoDB Atlas llamada `muebleria`, que actualmente está vacía.
+
+- No existen productos, usuarios ni pedidos cargados.
+- No se debe asumir que los datos de los sprints 5 y 6 están disponibles.
+- Los modelos y esquemas deben definirse en el backend mediante Mongoose.
+- MongoDB creará las colecciones correspondientes al insertar los primeros documentos; no es necesario crearlas manualmente desde Atlas.
+- Si se necesitan datos para pruebas, deben prepararse mediante un seed de desarrollo separado, sin mezclar datos ficticios con producción.
+- La importación de productos anteriores, si fuera necesaria, se realizará posteriormente y de forma independiente.
+
 ## 3. Principios de implementación
 
 1. Leer y respetar `AGENTS.md`, los componentes actuales, convenciones de idioma y estilos.

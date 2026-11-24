@@ -46,9 +46,15 @@ beforeAll(async () => {
 });
 
 afterEach(async () => {
-  const collections = Object.values(mongoose.connection.collections);
+  const db = mongoose.connection.db;
 
-  await Promise.all(collections.map((collection) => collection.deleteMany({})));
+  if (!db) return;
+
+  const collections = await db.listCollections({}, { nameOnly: true }).toArray();
+
+  await Promise.all(
+    collections.map(({ name }) => db.collection(name).deleteMany({})),
+  );
 });
 
 afterAll(async () => {

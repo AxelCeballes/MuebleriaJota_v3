@@ -87,6 +87,19 @@ Uso previsto en fases siguientes:
 router.post('/', requireAuth, requireRole('admin'), createProduct);
 ```
 
+## Rutas administrativas protegidas (Fase 2)
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| `GET` | `/api/productos` y `/api/productos/:id` | Público |
+| `POST`, `PUT`, `DELETE` | `/api/productos` | Sólo admin |
+| `POST` | `/api/imagenes` | Sólo admin |
+| `GET` | `/api/imagenes/:id` | Público |
+
+Las rutas protegidas requieren `Authorization: Bearer <token>`. Devuelven `401` sin token o con token inválido/expirado, y `403` si el usuario autenticado no es admin.
+
+La interfaz de administración actual todavía no envía el token; se adaptará en la fase de frontend. Hasta entonces, sus operaciones de escritura recibirán `401`.
+
 ## Primer administrador
 
 No existe endpoint público para cambiar roles. Para promover un usuario existente:
@@ -111,4 +124,4 @@ cd backend
 npm test
 ```
 
-Las pruebas usan Jest, Supertest y MongoDB Memory Server; no se conectan a Atlas ni a una base real. Cubren registro, login, hash de contraseña, email duplicado, token válido/inválido/expirado, usuario inexistente, autorización por roles, límite de 72 bytes en registro y login, y compatibilidad de los formatos de `JWT_EXPIRES_IN` con `jsonwebtoken`.
+Las pruebas usan Jest, Supertest y MongoDB Memory Server; no se conectan a Atlas ni a una base real. Cubren registro, login, hash de contraseña, email duplicado, token válido/inválido/expirado, usuario inexistente, autorización por roles, límite de 72 bytes en registro y login, compatibilidad de los formatos de `JWT_EXPIRES_IN` con `jsonwebtoken`, protección de escritura de productos y de subida de imágenes (`401` anónimo, `403` customer, admin autorizado).

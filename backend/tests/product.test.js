@@ -2,6 +2,13 @@ const mongoose = require('mongoose');
 const request = require('supertest');
 const app = require('../app');
 const Product = require('../models/Product');
+const { crearUsuarioConToken } = require('./helpers/auth');
+
+let autorizacionAdmin;
+
+beforeEach(async () => {
+  ({ authorization: autorizacionAdmin } = await crearUsuarioConToken({ rol: 'admin' }));
+});
 
 const productoValido = {
   nombre: 'Sillón de prueba',
@@ -80,6 +87,7 @@ describe('POST /api/productos', () => {
   test('crea un producto válido, devuelve 201 y lo persiste', async () => {
     const respuesta = await request(app)
       .post('/api/productos')
+      .set('Authorization', autorizacionAdmin)
       .send(productoValido);
 
     expect(respuesta.status).toBe(201);
@@ -105,6 +113,7 @@ describe('POST /api/productos', () => {
   test('rechaza campos obligatorios ausentes con 400', async () => {
     const respuesta = await request(app)
       .post('/api/productos')
+      .set('Authorization', autorizacionAdmin)
       .send({ descripcion: 'Sin nombre ni precio', stock: 1 });
 
     expect(respuesta.status).toBe(400);
@@ -121,6 +130,7 @@ describe('POST /api/productos', () => {
   test('rechaza un precio negativo con 400', async () => {
     const respuesta = await request(app)
       .post('/api/productos')
+      .set('Authorization', autorizacionAdmin)
       .send({ ...productoValido, precio: -1 });
 
     expect(respuesta.status).toBe(400);
@@ -132,6 +142,7 @@ describe('POST /api/productos', () => {
   test('rechaza un stock negativo con 400', async () => {
     const respuesta = await request(app)
       .post('/api/productos')
+      .set('Authorization', autorizacionAdmin)
       .send({ ...productoValido, stock: -1 });
 
     expect(respuesta.status).toBe(400);
@@ -143,6 +154,7 @@ describe('POST /api/productos', () => {
   test('rechaza un stock no entero con 400', async () => {
     const respuesta = await request(app)
       .post('/api/productos')
+      .set('Authorization', autorizacionAdmin)
       .send({ ...productoValido, stock: 1.5 });
 
     expect(respuesta.status).toBe(400);
@@ -166,6 +178,7 @@ describe('PUT /api/productos/:id', () => {
 
     const respuesta = await request(app)
       .put(`/api/productos/${producto._id}`)
+      .set('Authorization', autorizacionAdmin)
       .send(cambios);
 
     expect(respuesta.status).toBe(200);
@@ -183,6 +196,7 @@ describe('PUT /api/productos/:id', () => {
   test('devuelve 404 para un producto inexistente', async () => {
     const respuesta = await request(app)
       .put(`/api/productos/${idInexistente()}`)
+      .set('Authorization', autorizacionAdmin)
       .send({ nombre: 'Producto inexistente' });
 
     expect(respuesta.status).toBe(404);
@@ -195,6 +209,7 @@ describe('PUT /api/productos/:id', () => {
   test('devuelve 400 para un ID inválido', async () => {
     const respuesta = await request(app)
       .put('/api/productos/id-invalido')
+      .set('Authorization', autorizacionAdmin)
       .send({ nombre: 'Producto inválido' });
 
     expect(respuesta.status).toBe(400);
@@ -213,6 +228,7 @@ describe('PUT /api/productos/:id', () => {
 
     const respuesta = await request(app)
       .put(`/api/productos/${producto._id}`)
+      .set('Authorization', autorizacionAdmin)
       .send(cambios);
 
     expect(respuesta.status).toBe(400);
@@ -231,7 +247,9 @@ describe('DELETE /api/productos/:id', () => {
   test('elimina un producto existente y confirma que ya no existe', async () => {
     const producto = await crearProducto();
 
-    const respuesta = await request(app).delete(`/api/productos/${producto._id}`);
+    const respuesta = await request(app)
+      .delete(`/api/productos/${producto._id}`)
+      .set('Authorization', autorizacionAdmin);
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body).toMatchObject({
@@ -248,7 +266,9 @@ describe('DELETE /api/productos/:id', () => {
   });
 
   test('devuelve 404 cuando el producto no existe', async () => {
-    const respuesta = await request(app).delete(`/api/productos/${idInexistente()}`);
+    const respuesta = await request(app)
+      .delete(`/api/productos/${idInexistente()}`)
+      .set('Authorization', autorizacionAdmin);
 
     expect(respuesta.status).toBe(404);
     expect(respuesta.body).toEqual({
@@ -258,12 +278,86 @@ describe('DELETE /api/productos/:id', () => {
   });
 
   test('devuelve 400 para un ID inválido', async () => {
-    const respuesta = await request(app).delete('/api/productos/id-invalido');
+    const respuesta = await request(app)
+      .delete('/api/productos/id-invalido')
+      .set('Authorization', autorizacionAdmin);
 
     expect(respuesta.status).toBe(400);
     expect(respuesta.body).toEqual({
       status: 'error',
       message: 'El ID del producto no es válido.',
     });
+  });
+});
+
+describe('protección de escritura de productos', () => {
+  test('POST anónimo devuelve 401 y no crea el producto', async () => {
+    const respuesta = await request(app).post('/api/productos').send(productoValido);
+
+    expect(respuesta.status).toBe(401);
+    expect(respuesta.body.message).toBe('Necesitás iniciar sesión para continuar.');
+    expect(await Product.countDocuments()).toBe(0);
+  });
+
+  test('POST con rol customer devuelve 403 y no crea el producto', async () => {
+    const { authorization } = await crearUsuarioConToken({ rol: 'customer' });
+
+    const respuesta = await request(app)
+      .post('/api/productos')
+      .set('Authorization', authorization)
+      .send(productoValido);
+
+    expect(respuesta.status).toBe(403);
+    expect(respuesta.body.message).toBe('No tenés permisos para realizar esta acción.');
+    expect(await Product.countDocuments()).toBe(0);
+  });
+
+  test('PUT anónimo devuelve 401 y no modifica el producto', async () => {
+    const producto = await crearProducto();
+
+    const respuesta = await request(app)
+      .put(`/api/productos/${producto._id}`)
+      .send({ nombre: 'Nombre no autorizado' });
+
+    expect(respuesta.status).toBe(401);
+
+    const persistido = await Product.findById(producto._id).lean();
+    expect(persistido.nombre).toBe(producto.nombre);
+  });
+
+  test('PUT con rol customer devuelve 403 y no modifica el producto', async () => {
+    const producto = await crearProducto();
+    const { authorization } = await crearUsuarioConToken({ rol: 'customer' });
+
+    const respuesta = await request(app)
+      .put(`/api/productos/${producto._id}`)
+      .set('Authorization', authorization)
+      .send({ nombre: 'Nombre no autorizado' });
+
+    expect(respuesta.status).toBe(403);
+
+    const persistido = await Product.findById(producto._id).lean();
+    expect(persistido.nombre).toBe(producto.nombre);
+  });
+
+  test('DELETE anónimo devuelve 401 y conserva el producto', async () => {
+    const producto = await crearProducto();
+
+    const respuesta = await request(app).delete(`/api/productos/${producto._id}`);
+
+    expect(respuesta.status).toBe(401);
+    expect(await Product.exists({ _id: producto._id })).not.toBeNull();
+  });
+
+  test('DELETE con rol customer devuelve 403 y conserva el producto', async () => {
+    const producto = await crearProducto();
+    const { authorization } = await crearUsuarioConToken({ rol: 'customer' });
+
+    const respuesta = await request(app)
+      .delete(`/api/productos/${producto._id}`)
+      .set('Authorization', authorization);
+
+    expect(respuesta.status).toBe(403);
+    expect(await Product.exists({ _id: producto._id })).not.toBeNull();
   });
 });

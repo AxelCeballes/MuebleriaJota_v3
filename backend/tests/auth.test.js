@@ -196,6 +196,24 @@ describe('POST /api/auth/login', () => {
       expect.arrayContaining(['El email es obligatorio.', 'La contraseña es obligatoria.']),
     );
   });
+
+  test('devuelve 400 si la contraseña supera los 72 bytes de bcrypt', async () => {
+    const respuesta = await iniciarSesion({ password: 'a'.repeat(73) });
+
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body.message).toBe('Los datos de inicio de sesión no son válidos.');
+    expect(respuesta.body.errors).toContain('La contraseña no puede superar los 72 bytes.');
+  });
+
+  test('acepta exactamente 72 bytes de contraseña', async () => {
+    const password72 = 'a'.repeat(72);
+    await crearUsuario({ password: password72 });
+
+    const respuesta = await iniciarSesion({ password: password72 });
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.token).toEqual(expect.any(String));
+  });
 });
 
 describe('GET /api/auth/me', () => {
@@ -417,20 +435,66 @@ describe('configuración de autenticación', () => {
     delete process.env.JWT_EXPIRES_IN;
     delete process.env.BCRYPT_SALT_ROUNDS;
 
-    expect(obtenerExpiracionJwt()).toBe('1d');
+    expect(obtenerExpiracionJwt()).toBe(86400);
     expect(obtenerRondasBcrypt()).toBe(12);
   });
 
-  test('interpreta un JWT_EXPIRES_IN numérico como segundos', () => {
-    process.env.JWT_EXPIRES_IN = '3600';
+  test.each([
+    ['1s', 1],
+    ['30s', 30],
+    ['15m', 900],
+    ['12h', 43200],
+    ['1d', 86400],
+    ['2w', 1209600],
+    ['1y', 31557600],
+    ['3600', 3600],
+  ])('convierte JWT_EXPIRES_IN=%s a %i segundos', (valor, esperado) => {
+    process.env.JWT_EXPIRES_IN = valor;
 
-    expect(obtenerExpiracionJwt()).toBe(3600);
+    expect(obtenerExpiracionJwt()).toBe(esperado);
   });
 
-  test('rechaza una expiración con formato inválido', () => {
-    process.env.JWT_EXPIRES_IN = 'una semana';
+  test.each([
+    ['1s', 1],
+    ['15m', 900],
+    ['12h', 43200],
+    ['1d', 86400],
+    ['2w', 1209600],
+    ['1y', 31557600],
+    ['3600', 3600],
+  ])('la expiración %s es compatible con jsonwebtoken', (valor, esperado) => {
+    process.env.JWT_EXPIRES_IN = valor;
+    const expiracion = obtenerExpiracionJwt();
 
-    expect(() => validarConfiguracionAuth()).toThrow(/JWT_EXPIRES_IN/);
+    const token = jwt.sign({ sub: 'validacion' }, process.env.JWT_SECRET, {
+      expiresIn: expiracion,
+    });
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+
+    expect(payload.exp - payload.iat).toBe(esperado);
+  });
+
+  test.each([
+    '0',
+    '-1',
+    '-1d',
+    '1.5h',
+    '1ms',
+    '5mo',
+    '10 days',
+    '1D',
+    'una semana',
+    '1d extra',
+  ])('rechaza el formato inválido JWT_EXPIRES_IN=%s', (valor) => {
+    process.env.JWT_EXPIRES_IN = valor;
+
+    expect(() => obtenerExpiracionJwt()).toThrow(/JWT_EXPIRES_IN/);
+  });
+
+  test('rechaza una expiración que supera el rango numérico seguro', () => {
+    process.env.JWT_EXPIRES_IN = '999999999999999999999y';
+
+    expect(() => obtenerExpiracionJwt()).toThrow(/JWT_EXPIRES_IN/);
   });
 
   test('rechaza rondas de bcrypt fuera del rango permitido', () => {

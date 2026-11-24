@@ -133,6 +133,8 @@ const iniciarSesion = asyncHandler(async (request, response) => {
 
   if (typeof password !== 'string' || password.length === 0) {
     errores.push('La contraseña es obligatoria.');
+  } else if (Buffer.byteLength(password, 'utf8') > PASSWORD_MAXIMA_BYTES) {
+    errores.push(`La contraseña no puede superar los ${PASSWORD_MAXIMA_BYTES} bytes.`);
   }
 
   if (errores.length > 0) {

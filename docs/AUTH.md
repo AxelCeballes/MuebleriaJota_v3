@@ -9,7 +9,7 @@ Agregar al `.env` del backend (nunca commitear el archivo):
 | Variable | Obligatoria | Valor por defecto | Descripción |
 |---|---|---|---|
 | `JWT_SECRET` | Sí | — | Secreto para firmar y verificar JWT. La aplicación no inicia si falta o está vacío. |
-| `JWT_EXPIRES_IN` | No | `1d` | Vigencia del token. Formatos: `1d`, `12h`, `30m` o segundos (`3600`). |
+| `JWT_EXPIRES_IN` | No | `1d` | Vigencia del token. Se convierte a segundos antes de firmar. Unidades en minúscula: `s`, `m`, `h`, `d`, `w`, `y`; también se acepta un número entero de segundos (`3600`). |
 | `BCRYPT_SALT_ROUNDS` | No | `12` | Rondas de bcrypt. Valores admitidos: 10 a 15. |
 
 Generar un secreto local:
@@ -63,6 +63,7 @@ Errores: `400` datos inválidos (con `errors`), `409` email ya registrado.
 - Respuesta `200` con `usuario` y `token`.
 - Credenciales incorrectas o usuario inexistente: `401` con el mismo mensaje genérico.
 - Datos faltantes o email inválido: `400`.
+- La contraseña no puede superar los 72 bytes de bcrypt, igual que en el registro: `400`.
 
 ### `GET /api/auth/me`
 
@@ -110,4 +111,4 @@ cd backend
 npm test
 ```
 
-Las pruebas usan Jest, Supertest y MongoDB Memory Server; no se conectan a Atlas ni a una base real. Cubren registro, login, hash de contraseña, email duplicado, token válido/inválido/expirado, usuario inexistente y autorización por roles.
+Las pruebas usan Jest, Supertest y MongoDB Memory Server; no se conectan a Atlas ni a una base real. Cubren registro, login, hash de contraseña, email duplicado, token válido/inválido/expirado, usuario inexistente, autorización por roles, límite de 72 bytes en registro y login, y compatibilidad de los formatos de `JWT_EXPIRES_IN` con `jsonwebtoken`.

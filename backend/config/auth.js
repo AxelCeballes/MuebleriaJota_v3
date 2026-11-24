@@ -1,8 +1,20 @@
-const EXPIRACION_POR_DEFECTO = '1d';
 const RONDAS_BCRYPT_POR_DEFECTO = 12;
 const RONDAS_BCRYPT_MINIMAS = 10;
 const RONDAS_BCRYPT_MAXIMAS = 15;
-const PATRON_EXPIRACION = /^[1-9]\d*[smhdwy]?$/i;
+
+// Unidades compatibles con jsonwebtoken/ms, expresadas en segundos.
+// ms calcula el año como 365.25 días; se replica ese criterio.
+const SEGUNDOS_POR_UNIDAD = Object.freeze({
+  s: 1,
+  m: 60,
+  h: 60 * 60,
+  d: 24 * 60 * 60,
+  w: 7 * 24 * 60 * 60,
+  y: Math.round(365.25 * 24 * 60 * 60),
+});
+
+const EXPIRACION_POR_DEFECTO_EN_SEGUNDOS = SEGUNDOS_POR_UNIDAD.d;
+const PATRON_EXPIRACION = /^([1-9]\d*)([smhdwy])?$/;
 
 const crearErrorDeConfiguracion = (mensaje) => {
   const error = new Error(mensaje);
@@ -30,18 +42,31 @@ const obtenerExpiracionJwt = () => {
     : '';
 
   if (!valor) {
-    return EXPIRACION_POR_DEFECTO;
+    return EXPIRACION_POR_DEFECTO_EN_SEGUNDOS;
   }
 
-  if (!PATRON_EXPIRACION.test(valor)) {
+  const coincidencia = PATRON_EXPIRACION.exec(valor);
+
+  if (!coincidencia) {
     throw crearErrorDeConfiguracion(
-      'JWT_EXPIRES_IN debe tener un formato como 1d, 12h o 3600 (segundos).',
+      'JWT_EXPIRES_IN debe ser un número positivo con unidad s, m, h, d, w o y '
+        + '(por ejemplo 30s, 15m, 12h o 1d), o un número de segundos (por ejemplo 3600).',
     );
   }
 
-  // jsonwebtoken interpreta un string puramente numérico como milisegundos;
-  // convertirlo a número preserva la semántica de segundos documentada.
-  return /^\d+$/.test(valor) ? Number(valor) : valor;
+  const cantidad = Number(coincidencia[1]);
+  const unidad = coincidencia[2] || 's';
+  const expiracionEnSegundos = cantidad * SEGUNDOS_POR_UNIDAD[unidad];
+
+  if (!Number.isSafeInteger(expiracionEnSegundos) || expiracionEnSegundos <= 0) {
+    throw crearErrorDeConfiguracion(
+      'JWT_EXPIRES_IN supera el rango de duración admitido.',
+    );
+  }
+
+  // jsonwebtoken interpreta un string numérico como milisegundos; al devolver
+  // siempre segundos numéricos evitamos esa ambigüedad.
+  return expiracionEnSegundos;
 };
 
 const obtenerRondasBcrypt = () => {
@@ -77,8 +102,8 @@ const validarConfiguracionAuth = () => {
 };
 
 module.exports = {
-  EXPIRACION_POR_DEFECTO,
   RONDAS_BCRYPT_POR_DEFECTO,
+  SEGUNDOS_POR_UNIDAD,
   obtenerJwtSecret,
   obtenerExpiracionJwt,
   obtenerRondasBcrypt,

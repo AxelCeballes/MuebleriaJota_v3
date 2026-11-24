@@ -267,7 +267,7 @@ Si falta cualquiera de estos puntos, la fase queda **En curso** o **Pendiente**.
 | Fase 0 — Preparación | Completada | `npm ci` en backend y cliente; backend 18/18 tests; frontend 45/45 tests; lint sin errores (1 warning preexistente); build OK; Atlas conecta y `muebleria` está vacía; sin cambios en el repositorio | — |
 | Fase 1 — Auth backend | Completada | Registro, login y `/me`; bcrypt; JWT; roles; script de admin; validación de 72 bytes en registro y login; `JWT_EXPIRES_IN` normalizado a segundos; 77/77 tests al cierre | `516bab7`, `9eac22c` |
 | Fase 2 — Administración protegida | Completada | Escritura de productos y subida de imágenes protegidas; lecturas públicas; `401`/`403`/admin; 91/91 tests (3 suites) al cierre | `a755bb9` |
-| Fase 3 — Pedidos backend | Pendiente | Sin modelo, controlador ni rutas de pedidos | — |
+| Fase 3 — Pedidos backend | Completada | Modelo `Order`, controlador y rutas; cálculo en servidor, validación de stock, idempotencia y consistencia; 124/124 tests al cierre (MongoMemoryReplSet, transacciones atómicas, cálculo server-side, idempotencia por header/body). Evidencia: `npm test` → 4 suites, 124 passed. | `516bab7`, `9eac22c`, `a755bb9`, `b10fcf2`, `cab9e93` |
 | Fase 4 — Frontend auth | Pendiente | Sin contextos, rutas de login/registro/perfil ni `ProtectedRoute` | — |
 | Fase 5 — Checkout | Pendiente | El carrito sigue siendo demostrativo y no crea pedidos | — |
 | Fase 6 — Regresión | Pendiente | Se ejecutará al cerrar las fases funcionales | — |

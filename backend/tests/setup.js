@@ -1,5 +1,9 @@
 process.env.NODE_ENV = 'test';
 delete process.env.MONGODB_URI;
+// Configuración determinista para los tests: no depende del .env local.
+process.env.JWT_SECRET = 'secreto-de-prueba-solo-para-tests-1234567890';
+process.env.JWT_EXPIRES_IN = '1d';
+process.env.BCRYPT_SALT_ROUNDS = '10';
 
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');

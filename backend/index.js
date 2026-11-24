@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const app = require('./app');
 const { connectDB, disconnectDB } = require('./config/db');
+const { validarConfiguracionAuth } = require('./config/auth');
 
 const PORT = process.env.PORT || 3000;
 
@@ -9,6 +10,8 @@ let server;
 
 async function startServer() {
   try {
+    // Falla al iniciar si falta JWT_SECRET o si la configuración de auth es inválida.
+    validarConfiguracionAuth();
     await connectDB();
 
     server = app.listen(PORT, () => {

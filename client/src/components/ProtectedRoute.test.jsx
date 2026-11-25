@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import ProtectedRoute from './ProtectedRoute';
@@ -83,5 +84,33 @@ describe('ProtectedRoute', () => {
     renderRuta('/solo-admin', <p>Panel admin</p>);
 
     await waitFor(() => expect(screen.getByText('Panel admin')).toBeInTheDocument());
+  });
+
+  it('ante un error temporal conserva la sesión y permite reintentar', async () => {
+    const usuario = userEvent.setup();
+    localStorage.setItem('auth_token', 'token');
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ message: 'Error interno.' }),
+      })
+      .mockResolvedValueOnce(perfilDe('customer'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderRuta('/privado', <p>Contenido privado</p>);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /No pudimos validar tu sesión/,
+    );
+    // No se muestra la sesión ni se redirige al login.
+    expect(screen.queryByText('Contenido privado')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Destino:/)).not.toBeInTheDocument();
+    expect(localStorage.getItem('auth_token')).toBe('token');
+
+    await usuario.click(screen.getByRole('button', { name: /REINTENTAR/i }));
+
+    await waitFor(() => expect(screen.getByText('Contenido privado')).toBeInTheDocument());
   });
 });

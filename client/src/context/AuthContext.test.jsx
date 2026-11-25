@@ -15,8 +15,9 @@ const sesion = (usuario = USUARIO, token = 'token-123') => ({
   json: async () => ({ usuario, token }),
 });
 
-const respuestaError = (message) => ({
+const respuestaError = (message, status = 400) => ({
   ok: false,
+  status,
   json: async () => ({ status: 'error', message }),
 });
 
@@ -126,9 +127,12 @@ describe('AuthContext', () => {
     );
   });
 
-  it('descarta un token vencido al restaurar', async () => {
+  it('descarta el token cuando /me responde 401', async () => {
     localStorage.setItem('auth_token', 'token-vencido');
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuestaError('Tu sesión expiró.')));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(respuestaError('Tu sesión expiró.', 401)),
+    );
 
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
@@ -136,5 +140,48 @@ describe('AuthContext', () => {
     expect(localStorage.getItem('auth_token')).toBeNull();
     expect(result.current.usuario).toBeNull();
     expect(result.current.inicializando).toBe(false);
+    expect(result.current.errorRestauracion).toBeNull();
+  });
+
+  it('conserva el token ante un error 500 y permite reintentar', async () => {
+    localStorage.setItem('auth_token', 'token-123');
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(respuestaError('Error interno del servidor.', 500))
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ usuario: USUARIO }) });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+    await waitFor(() => expect(result.current.errorRestauracion).toBeTruthy());
+    expect(result.current.inicializando).toBe(false);
+    // Nunca se muestra una sesión que no pudo validarse.
+    expect(result.current.usuario).toBeNull();
+    expect(result.current.token).toBe('token-123');
+    expect(localStorage.getItem('auth_token')).toBe('token-123');
+
+    act(() => result.current.reintentarRestauracion());
+
+    await waitFor(() => expect(result.current.usuario).toEqual(USUARIO));
+    expect(result.current.errorRestauracion).toBeNull();
+    expect(result.current.inicializando).toBe(false);
+    expect(result.current.token).toBe('token-123');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('conserva el token cuando falla la conexión al restaurar', async () => {
+    localStorage.setItem('auth_token', 'token-123');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+    await waitFor(() => expect(result.current.errorRestauracion).toBeTruthy());
+    expect(result.current.inicializando).toBe(false);
+    expect(result.current.usuario).toBeNull();
+    expect(result.current.token).toBe('token-123');
+    expect(localStorage.getItem('auth_token')).toBe('token-123');
   });
 });

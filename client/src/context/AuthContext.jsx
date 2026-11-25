@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   headersConToken,
   mensajeDeError,
@@ -8,6 +8,8 @@ import { AuthContext } from './auth-context';
 
 const CLAVE_TOKEN = 'auth_token';
 const MENSAJE_SIN_CONEXION = 'No pudimos conectar con el servidor. Intentá de nuevo.';
+const MENSAJE_SESION_NO_VALIDADA =
+  'No pudimos validar tu sesión. Revisá tu conexión e intentá de nuevo.';
 
 const leerTokenGuardado = () => {
   try {
@@ -44,12 +46,18 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(leerTokenGuardado);
   const [usuario, setUsuario] = useState(null);
   const [inicializando, setInicializando] = useState(() => Boolean(leerTokenGuardado()));
+  const [errorRestauracion, setErrorRestauracion] = useState(null);
+  const [intentoRestauracion, setIntentoRestauracion] = useState(0);
+  // Evita volver a pedir /me para un token que ya fue validado en esta sesión.
+  const tokenValidadoRef = useRef(null);
 
   const establecerSesion = useCallback((datos) => {
     const usuarioValidado = validarSesion(datos);
     guardarToken(datos.token);
+    tokenValidadoRef.current = datos.token;
     setToken(datos.token);
     setUsuario(usuarioValidado);
+    setErrorRestauracion(null);
     setInicializando(false);
     return usuarioValidado;
   }, []);
@@ -87,15 +95,26 @@ export function AuthProvider({ children }) {
 
   const cerrarSesion = useCallback(() => {
     borrarToken();
+    tokenValidadoRef.current = null;
     setToken(null);
     setUsuario(null);
+    setErrorRestauracion(null);
     setInicializando(false);
   }, []);
 
+  const reintentarRestauracion = useCallback(() => {
+    setErrorRestauracion(null);
+    setInicializando(true);
+    setIntentoRestauracion((valor) => valor + 1);
+  }, []);
+
   // Un token guardado se valida contra /me antes de mostrar rutas privadas.
-  // Si expiró o el usuario ya no existe, se descarta sin dejar sesión "fantasma".
+  // Sólo un 401/4xx descarta la sesión: un 5xx o un fallo de red es temporal,
+  // conserva el token y habilita un reintento sin mostrar usuario sin validar.
   useEffect(() => {
-    if (!token) return undefined;
+    // El estado inicial y el cierre de sesión ya dejan `inicializando` en false;
+    // un token validado en esta sesión no necesita otra llamada a /me.
+    if (!token || tokenValidadoRef.current === token) return undefined;
 
     let activo = true;
     const controlador = new AbortController();
@@ -106,20 +125,38 @@ export function AuthProvider({ children }) {
           headers: headersConToken(token),
           signal: controlador.signal,
         });
-        const { datos, mensaje } = await mensajeDeError(
+        const { datos } = await mensajeDeError(
           respuesta,
           'No se pudo restaurar la sesión.',
         );
 
         if (!activo) return;
-        if (!respuesta.ok) throw new Error(mensaje);
 
-        setUsuario(datos?.usuario ?? null);
-      } catch (error) {
-        if (!activo || error.name === 'AbortError') return;
+        if (respuesta.ok) {
+          if (!datos?.usuario) {
+            setErrorRestauracion(MENSAJE_SESION_NO_VALIDADA);
+            return;
+          }
+
+          tokenValidadoRef.current = token;
+          setUsuario(datos.usuario);
+          setErrorRestauracion(null);
+          return;
+        }
+
+        if (Number(respuesta.status) >= 500) {
+          setErrorRestauracion(MENSAJE_SESION_NO_VALIDADA);
+          return;
+        }
+
         borrarToken();
+        tokenValidadoRef.current = null;
         setToken(null);
         setUsuario(null);
+        setErrorRestauracion(null);
+      } catch (error) {
+        if (!activo || error.name === 'AbortError') return;
+        setErrorRestauracion(MENSAJE_SESION_NO_VALIDADA);
       } finally {
         if (activo) setInicializando(false);
       }
@@ -131,19 +168,30 @@ export function AuthProvider({ children }) {
       activo = false;
       controlador.abort();
     };
-  }, [token]);
+  }, [token, intentoRestauracion]);
 
   const valor = useMemo(
     () => ({
       token,
       usuario,
       inicializando,
+      errorRestauracion,
       esAdmin: usuario?.rol === 'admin',
       iniciarSesion,
       registrarUsuario,
       cerrarSesion,
+      reintentarRestauracion,
     }),
-    [token, usuario, inicializando, iniciarSesion, registrarUsuario, cerrarSesion],
+    [
+      token,
+      usuario,
+      inicializando,
+      errorRestauracion,
+      iniciarSesion,
+      registrarUsuario,
+      cerrarSesion,
+      reintentarRestauracion,
+    ],
   );
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;

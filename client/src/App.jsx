@@ -215,10 +215,9 @@ const normalizarProducto = (producto) => ({
   destacado: Boolean(producto.destacado),
 });
 
-// Contenido principal de la aplicación con Router
-function AppContent() {
-  const navigate = useNavigate();
-
+// Estado del catálogo. Vive por encima de CartProvider para que el carrito
+// reciba la lista de productos y AppContent pueda consumir ambos contextos.
+function AppCatalogo() {
   // Estado de productos y ciclo de vida de la petición
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -258,21 +257,6 @@ function AppContent() {
     return () => controlador.abort();
   }, [solicitarProductos]);
 
-  // El carrito vive en CartContext; acá sólo se conserva el estado del catálogo.
-  const {
-    itemsCarrito,
-    totalUnidades,
-    totalCarrito,
-    agregarProducto: handleAddToCart,
-    quitarUnidad: handleQuitarUnidad,
-    eliminarProducto: handleEliminarProducto,
-    vaciarCarrito: handleVaciarCarrito,
-  } = useCart();
-
-  const handleSelectProduct = (producto) => {
-    navigate(`/productos/${producto._id}`);
-  };
-
   const handleProductoCreado = (producto, deletedId) => {
     if (deletedId) {
       setProductos((prev) => prev.filter((item) => item._id !== deletedId));
@@ -288,102 +272,140 @@ function AppContent() {
 
   return (
     <CartProvider productos={productos}>
-      <div className="App">
-        <ScrollToTop />
-        <Navbar cantidadCarrito={totalUnidades} />
-
-        <main>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <HomePage
-                  productos={productos}
-                  onAddToCart={handleAddToCart}
-                  onSelectProduct={handleSelectProduct}
-                  cargando={cargando}
-                  error={error}
-                  onReintentar={() => cargarProductos()}
-                />
-              }
-            />
-            <Route
-              path="/productos"
-              element={
-                <ProductosPage
-                  productos={productos}
-                  onAddToCart={handleAddToCart}
-                  onSelectProduct={handleSelectProduct}
-                  cargando={cargando}
-                  error={error}
-                  onReintentar={() => cargarProductos()}
-                />
-              }
-            />
-            <Route
-              path="/productos/:id"
-              element={
-                <ProductoDetallePage
-                  productos={productos}
-                  onAddToCart={handleAddToCart}
-                  cargando={cargando}
-                  error={error}
-                  onReintentar={() => cargarProductos()}
-                />
-              }
-            />
-            <Route
-              path="/contacto"
-              element={<ContactoPage />}
-            />
-            <Route path="/login" element={<Login />} />
-            <Route path="/registro" element={<Registro />} />
-            <Route
-              path="/perfil"
-              element={
-                <ProtectedRoute>
-                  <Perfil />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/mis-pedidos"
-              element={
-                <ProtectedRoute>
-                  <MisPedidos />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/crear-producto"
-              element={
-                <ProtectedRoute roles={['admin']}>
-                  <AdminGestion onProductoGuardado={handleProductoCreado} />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/carrito"
-              element={
-                <CarritoPage
-                  itemsCarrito={itemsCarrito}
-                  totalUnidades={totalUnidades}
-                  totalCarrito={totalCarrito}
-                  onAddToCart={handleAddToCart}
-                  onQuitarUnidad={handleQuitarUnidad}
-                  onEliminarProducto={handleEliminarProducto}
-                  onVaciarCarrito={handleVaciarCarrito}
-                  onPedidoConfirmado={cargarProductos}
-                />
-              }
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </main>
-
-        <Footer />
-      </div>
+      <AppContent
+        productos={productos}
+        cargando={cargando}
+        error={error}
+        onReintentar={() => cargarProductos()}
+        onProductoCreado={handleProductoCreado}
+        onPedidoConfirmado={() => cargarProductos()}
+      />
     </CartProvider>
+  );
+}
+
+// Contenido principal de la aplicación con Router. Se renderiza dentro de
+// AuthProvider y CartProvider, por lo que todos los hooks encuentran su contexto.
+function AppContent({
+  productos,
+  cargando,
+  error,
+  onReintentar,
+  onProductoCreado,
+  onPedidoConfirmado,
+}) {
+  const navigate = useNavigate();
+
+  const {
+    itemsCarrito,
+    totalUnidades,
+    totalCarrito,
+    agregarProducto: handleAddToCart,
+    quitarUnidad: handleQuitarUnidad,
+    eliminarProducto: handleEliminarProducto,
+    vaciarCarrito: handleVaciarCarrito,
+  } = useCart();
+
+  const handleSelectProduct = (producto) => {
+    navigate(`/productos/${producto._id}`);
+  };
+
+  return (
+    <div className="App">
+      <ScrollToTop />
+      <Navbar cantidadCarrito={totalUnidades} />
+
+      <main>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <HomePage
+                productos={productos}
+                onAddToCart={handleAddToCart}
+                onSelectProduct={handleSelectProduct}
+                cargando={cargando}
+                error={error}
+                onReintentar={onReintentar}
+              />
+            }
+          />
+          <Route
+            path="/productos"
+            element={
+              <ProductosPage
+                productos={productos}
+                onAddToCart={handleAddToCart}
+                onSelectProduct={handleSelectProduct}
+                cargando={cargando}
+                error={error}
+                onReintentar={onReintentar}
+              />
+            }
+          />
+          <Route
+            path="/productos/:id"
+            element={
+              <ProductoDetallePage
+                productos={productos}
+                onAddToCart={handleAddToCart}
+                cargando={cargando}
+                error={error}
+                onReintentar={onReintentar}
+              />
+            }
+          />
+          <Route
+            path="/contacto"
+            element={<ContactoPage />}
+          />
+          <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Registro />} />
+          <Route
+            path="/perfil"
+            element={
+              <ProtectedRoute>
+                <Perfil />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mis-pedidos"
+            element={
+              <ProtectedRoute>
+                <MisPedidos />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/crear-producto"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <AdminGestion onProductoGuardado={onProductoCreado} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/carrito"
+            element={
+              <CarritoPage
+                itemsCarrito={itemsCarrito}
+                totalUnidades={totalUnidades}
+                totalCarrito={totalCarrito}
+                onAddToCart={handleAddToCart}
+                onQuitarUnidad={handleQuitarUnidad}
+                onEliminarProducto={handleEliminarProducto}
+                onVaciarCarrito={handleVaciarCarrito}
+                onPedidoConfirmado={onPedidoConfirmado}
+              />
+            }
+          />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+
+      <Footer />
+    </div>
   );
 }
 
@@ -391,7 +413,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <AppContent />
+        <AppCatalogo />
       </BrowserRouter>
     </AuthProvider>
   );

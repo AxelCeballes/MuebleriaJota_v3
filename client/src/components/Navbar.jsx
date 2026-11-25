@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 function Navbar({ cantidadCarrito = 0 }) {
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const { usuario, esAdmin, cerrarSesion } = useAuth();
 
   // Cierra el menú al navegar
   const cerrarMenu = () => setMenuAbierto(false);
@@ -72,14 +74,66 @@ function Navbar({ cantidadCarrito = 0 }) {
         >
           Contacto
         </NavLink>
-        <NavLink
-          to="/admin/crear-producto"
-          role="button"
-          className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-          onClick={cerrarMenu}
-        >
-          Admin
-        </NavLink>
+
+        {usuario ? (
+          <>
+            <NavLink
+              to="/perfil"
+              role="button"
+              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+              onClick={cerrarMenu}
+            >
+              Mi perfil
+            </NavLink>
+            <NavLink
+              to="/mis-pedidos"
+              role="button"
+              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+              onClick={cerrarMenu}
+            >
+              Mis pedidos
+            </NavLink>
+            {esAdmin && (
+              <NavLink
+                to="/admin/crear-producto"
+                role="button"
+                className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+                onClick={cerrarMenu}
+              >
+                Admin
+              </NavLink>
+            )}
+            <button
+              type="button"
+              className="nav-link nav-link-button"
+              onClick={() => {
+                cerrarSesion();
+                cerrarMenu();
+              }}
+            >
+              Cerrar sesión
+            </button>
+          </>
+        ) : (
+          <>
+            <NavLink
+              to="/login"
+              role="button"
+              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+              onClick={cerrarMenu}
+            >
+              Ingresar
+            </NavLink>
+            <NavLink
+              to="/registro"
+              role="button"
+              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+              onClick={cerrarMenu}
+            >
+              Registrarse
+            </NavLink>
+          </>
+        )}
       </nav>
     </header>
   );

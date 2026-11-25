@@ -10,9 +10,12 @@ function Cart({
   onAgregar,
   onQuitarUnidad,
   onEliminar,
-  onVaciar
+  onVaciar,
+  onCheckout
 }) {
-  const [compraIniciada, setCompraIniciada] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [errorCompra, setErrorCompra] = useState('');
+  const [pedidoConfirmado, setPedidoConfirmado] = useState('');
   const [mensajeStock, setMensajeStock] = useState('');
 
   const handleIncrementar = (producto) => {
@@ -24,6 +27,23 @@ function Cart({
     }
 
     setMensajeStock('');
+  };
+
+  const handleComprar = async () => {
+    if (enviando || items.length === 0) return;
+
+    setEnviando(true);
+    setErrorCompra('');
+    setPedidoConfirmado('');
+
+    try {
+      const pedido = await onCheckout?.();
+      if (pedido?._id) setPedidoConfirmado(pedido._id);
+    } catch (error) {
+      setErrorCompra(error?.message || 'No se pudo registrar el pedido. Intentá de nuevo.');
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
@@ -111,10 +131,10 @@ function Cart({
           <button
             type="button"
             className="btn btn-buy cart-buy"
-            disabled={totalUnidades === 0}
-            onClick={() => setCompraIniciada(true)}
+            disabled={totalUnidades === 0 || enviando}
+            onClick={handleComprar}
           >
-            COMPRAR
+            {enviando ? 'PROCESANDO...' : 'COMPRAR'}
           </button>
 
           <button
@@ -128,9 +148,15 @@ function Cart({
           </button>
         </div>
 
-        {compraIniciada && (
+        {errorCompra && (
+          <p className="cart-purchase-message cart-checkout-error" role="alert">
+            {errorCompra}
+          </p>
+        )}
+
+        {pedidoConfirmado && (
           <p className="cart-purchase-message" role="status">
-            Esta demo no procesa pagos ni confirma pedidos.
+            Pedido confirmado. Número: {pedidoConfirmado.slice(-6)}. Ya podés verlo en Mis pedidos.
           </p>
         )}
       </aside>

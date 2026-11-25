@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { formatoPrecio } from '../utils/format';
-import { leerJsonDeRespuesta } from '../utils/api';
+import { headersConToken, leerJsonDeRespuesta } from '../utils/api';
+import { useAuth } from '../hooks/useAuth';
 import AdminCrearProducto from './AdminCrearProducto';
 
 const API = (import.meta.env.VITE_API_BASE || '') + '/api';
 
 function AdminGestion({ onProductoGuardado }) {
+  const { token } = useAuth();
   const [products, setProducts] = useState(null);
   const [error, setError] = useState('');
   const [mensajeExito, setMensajeExito] = useState('');
@@ -65,7 +67,10 @@ function AdminGestion({ onProductoGuardado }) {
     setError('');
     setMensajeExito('');
     try {
-      const response = await fetch(`${API}/productos/${product._id}`, { method: 'DELETE' });
+      const response = await fetch(`${API}/productos/${product._id}`, {
+        method: 'DELETE',
+        headers: headersConToken(token),
+      });
       const data = await leerJsonDeRespuesta(response);
       if (!response.ok) throw new Error(data?.message || 'No se pudo eliminar el producto.');
       setProducts((previous) => (

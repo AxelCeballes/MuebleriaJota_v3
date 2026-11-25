@@ -1676,6 +1676,12 @@ h2,
   background: rgba(135, 169, 107, .08);
 }
 
+.cart-checkout-error {
+  animation: none;
+  background: var(--siena-08);
+  border-left-color: var(--siena);
+}
+
 .cart-buy {
   animation: cart-buy-enter .45s ease-out both;
   color: var(--texto);
@@ -1945,4 +1951,91 @@ h2,
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+/* --------------------------------------------------------------------------
+   Sprint 8 — Cuenta, sesión y pedidos
+   -------------------------------------------------------------------------- */
+.auth-section {
+  display: flex;
+  justify-content: center;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  max-width: 420px;
+  width: 100%;
+}
+
+.auth-form .btn {
+  margin-top: 1rem;
+}
+
+.auth-help {
+  color: var(--texto-50);
+  font-size: .9rem;
+  margin-top: .5rem;
+}
+
+.nav-link-button {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.perfil-card,
+.order-card {
+  background: var(--blanco);
+  border: 1px solid var(--siena-15);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+  padding: 1.5rem;
+}
+
+.perfil-card {
+  display: grid;
+  gap: .5rem;
+  margin: 0 auto;
+  max-width: 520px;
+}
+
+.orders-list {
+  display: grid;
+  gap: 1rem;
+  margin: 0 auto;
+  max-width: 760px;
+}
+
+.order-card header {
+  border-bottom: 1px solid var(--siena-15);
+  margin-bottom: .75rem;
+  padding-bottom: .5rem;
+}
+
+.order-card h2 {
+  font-family: "Playfair Display", serif;
+  font-size: 1.25rem;
+}
+
+.order-card header p {
+  color: var(--texto-50);
+  font-size: .85rem;
+}
+
+.order-card ul {
+  list-style: none;
+  margin-bottom: .5rem;
+}
+
+.order-card li {
+  padding: .2rem 0;
+}
+
+.order-total {
+  font-weight: 600;
+  text-align: right;
 }

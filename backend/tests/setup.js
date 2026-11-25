@@ -1,8 +1,12 @@
 process.env.NODE_ENV = 'test';
 delete process.env.MONGODB_URI;
+// Configuración determinista para los tests: no depende del .env local.
+process.env.JWT_SECRET = 'secreto-de-prueba-solo-para-tests-1234567890';
+process.env.JWT_EXPIRES_IN = '1d';
+process.env.BCRYPT_SALT_ROUNDS = '10';
 
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+const { MongoMemoryReplSet } = require('mongodb-memory-server');
 const { connectDB, disconnectDB } = require('../config/db');
 
 const TEST_DB_NAME = 'muebleria-jota-test';
@@ -24,8 +28,14 @@ const verificarUriDePrueba = (uri) => {
 };
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create({
-    instance: { dbName: TEST_DB_NAME },
+  // Los pedidos usan transacciones; MongoMemoryReplSet emula un replica set
+  // equivalente al que ofrece MongoDB Atlas.
+  mongoServer = await MongoMemoryReplSet.create({
+    replSet: {
+      count: 1,
+      dbName: TEST_DB_NAME,
+      storageEngine: 'wiredTiger',
+    },
   });
 
   const uri = mongoServer.getUri(TEST_DB_NAME);
@@ -42,9 +52,15 @@ beforeAll(async () => {
 });
 
 afterEach(async () => {
-  const collections = Object.values(mongoose.connection.collections);
+  const db = mongoose.connection.db;
 
-  await Promise.all(collections.map((collection) => collection.deleteMany({})));
+  if (!db) return;
+
+  const collections = await db.listCollections({}, { nameOnly: true }).toArray();
+
+  await Promise.all(
+    collections.map(({ name }) => db.collection(name).deleteMany({})),
+  );
 });
 
 afterAll(async () => {

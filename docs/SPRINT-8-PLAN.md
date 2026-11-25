@@ -232,3 +232,71 @@ El proyecto utiliza una nueva base de datos MongoDB Atlas llamada `muebleria`, q
 - Este plan: `docs/SPRINT-8-PLAN.md`.
 - Instrucciones operativas para OpenCode: `docs/OPENCODE.md`.
 - Actualizar `AGENTS.md` y `README.md` al completar cada fase y al cerrar Sprint 8.
+
+## 9. Confirmación de avance por fase
+
+### Regla de cierre
+
+Una fase se considera **Completada** sólo si se cumplen todos estos puntos:
+
+1. El código y la documentación de la fase están implementados.
+2. Los tests aplicables se ejecutaron realmente y pasaron, con comando y resultado registrados.
+3. No quedan fallos conocidos sin resolver dentro del alcance de la fase.
+4. Los cambios están commiteados y publicados en la rama de trabajo.
+5. La evidencia queda registrada en la tabla de estado de este documento.
+
+Si falta cualquiera de estos puntos, la fase queda **En curso** o **Pendiente**. Escribir código no alcanza para marcarla como terminada.
+
+### Criterios mínimos por fase
+
+- **Fase 0 — Preparación:** dependencias instaladas con lockfile en backend y cliente; tests, lint y build iniciales ejecutados; fallos preexistentes registrados.
+- **Fase 1 — Auth backend:** registro, login y perfil; hash bcrypt; JWT con expiración; `401`/`403`; `JWT_SECRET` obligatorio al iniciar; tests de auth, tokens y roles.
+- **Fase 2 — Administración protegida:** escritura de productos e imágenes sólo para admin; lecturas públicas; tests `401` anónimo, `403` customer, admin autorizado y regresión CRUD.
+- **Fase 3 — Pedidos backend:** modelo `Order`; precios, total y stock calculados en servidor; pedido asociado al usuario autenticado; tests de stock, payload manipulado, aislamiento por usuario y consistencia.
+- **Fase 4 — Frontend auth:** `AuthContext`, `CartContext`, login/registro/perfil, restauración de sesión, `ProtectedRoute`, navbar condicional y tests.
+- **Fase 5 — Checkout:** pedido real con Bearer; carrito se vacía sólo tras confirmación; manejo de errores y tests de checkout.
+- **Fase 6 — Regresión:** suites completas, lint, build, revisión de seguridad/CORS/errores y documentación actualizada.
+- **Fase 7 — Despliegue:** Render, Vercel y Atlas configurados sin secretos en el repositorio; health check y flujos principales verificados.
+
+### Estado actual
+
+Última actualización: 2026-11-24. Rama de trabajo: `MuebleriaJota_v4-Sprint-7/8`.
+
+| Fase | Estado | Evidencia verificada | Commits |
+|---|---|---|---|
+| Fase 0 — Preparación | Completada | `npm ci` en backend y cliente; backend 18/18 tests; frontend 45/45 tests; lint sin errores (1 warning preexistente); build OK; Atlas conecta y `muebleria` está vacía; sin cambios en el repositorio | — |
+| Fase 1 — Auth backend | Completada | Registro, login y `/me`; bcrypt; JWT; roles; script de admin; validación de 72 bytes en registro y login; `JWT_EXPIRES_IN` normalizado a segundos; 77/77 tests al cierre | `516bab7`, `9eac22c` |
+| Fase 2 — Administración protegida | Completada | Escritura de productos y subida de imágenes protegidas; lecturas públicas; `401`/`403`/admin; 91/91 tests (3 suites) al cierre | `a755bb9` |
+| Fase 3 — Pedidos backend | Completada | Modelo `Order`, controlador y rutas; cálculo en servidor, validación de stock, idempotencia y consistencia; 127/127 tests al cierre (MongoMemoryReplSet, transacciones atómicas, cálculo server-side, idempotencia por header/body, precisión monetaria a 2 decimales). Evidencia: `npm test` → 4 suites, 127 passed. | `516bab7`, `9eac22c`, `a755bb9`, `b10fcf2`, `cab9e93`, `85e7cf2` |
+| Fase 4 — Frontend auth | Completada | `AuthContext`, `CartContext` + hooks, `ProtectedRoute`, login/registro/perfil/mis-pedidos, navbar condicional y envío de Bearer en escrituras admin. `npm test` → 9 archivos, 69/69 tests; `npm run lint` → 0 errores, 2 warnings (`react(set-state-in-effect)`); `npm run build` OK (49 módulos); `git diff --check` OK. Backend sin cambios (127/127 en Fase 3). Corrección de auditoría (2026-11-24): `AppCatalogo` carga el catálogo y envuelve `AppContent` con `CartProvider`, por lo que `useCart` y `useCheckout` se ejecutan dentro de sus providers; restauración de sesión distingue 401/4xx (descarta token) de 5xx o fallo de red (conserva token, no muestra usuario sin validar y habilita reintento). Tras la corrección: cliente 12 archivos, 86/86 tests. | `363f595`, `88eb1a8` |
+| Fase 5 — Checkout | Completada | Checkout real: `services/checkout.js` envía ids/cantidades con Bearer e `Idempotency-Key`; `useCheckout` exige sesión, conserva la clave en reintentos y vacía el carrito sólo con pedido confirmado; `Cart` muestra confirmación/errores y recarga stock. `npm test` → 11 archivos, 79/79 tests; `npm run lint` → 0 errores, 2 warnings conocidos; `npm run build` OK (51 módulos); `git diff --check` OK. Corrección de auditoría (2026-11-24): tests de integración de `App` ejecutan el checkout con sesión válida y verifican Bearer, `Idempotency-Key`, cuerpo enviado y vaciado del carrito; un visitante que intenta comprar es redirigido a `/login` sin perder el carrito. | `6ae9cec`, `88eb1a8` |
+| Fase 6 — Regresión | Completada | Regresión final (2026-11-24): backend `npm test` → 4 suites, 127/127; cliente `npm test` → 12 archivos, 86/86; `npm run lint` → 0 errores, 2 warnings conocidos (`react(set-state-in-effect)` en `App.jsx:256` y `MisPedidos.jsx:41`); `npm run build` OK (51 módulos); `git -c core.whitespace=cr-at-eol diff --check` OK (`App.jsx` conserva CRLF en el repositorio). Se agregaron tests de integración que montan `App` con `AuthProvider`, `CartProvider` y `BrowserRouter` reales: inicio sin errores de composición, catálogo visible, persistencia del carrito al remontar, checkout autenticado y redirección de visitantes al login. Auditoría: CORS con `Authorization` y `credentials: false`; `express.json({ limit: '20kb' })`; `x-powered-by` desactivado; `JWT_SECRET` obligatorio al arrancar; bcrypt 10–15 rondas; escrituras de productos/imágenes con `requireAuth` + `requireRole('admin')`; pedidos con identidad del JWT, precios desde MongoDB y stock atómico; sin secretos en archivos versionados (`.env` ignorado en backend y cliente). README y AGENTS actualizados, con XSS por `localStorage` y ausencia de rate limiting documentadas como limitaciones. | `cb77501`, `88eb1a8` |
+| Fase 7 — Despliegue | Pendiente | Sin cambios de servicios ni variables remotas | — |
+
+### Corrección de la auditoría independiente de Fases 4–6 (2026-11-24)
+
+Hallazgos corregidos:
+
+1. **Composición de providers (crítico).** `AppContent` llamaba `useCart()` fuera de `CartProvider`. Se separó el estado del catálogo en `AppCatalogo`, que renderiza `CartProvider` por encima de `AppContent` y le pasa la lista actualizada de productos. `useCheckout` sigue dentro de `CarritoPage`, bajo `AuthProvider` y `CartProvider`.
+2. **Restauración de sesión.** Ante `401`/4xx se elimina el token; ante `5xx` o error de red se conserva, no se expone `usuario` sin validar y `reintentarRestauracion()` vuelve a consultar `/me`. `ProtectedRoute` muestra un reintento en lugar de redirigir al login cuando el fallo es temporal.
+3. **Tests de integración.** `client/src/App.test.jsx` monta la aplicación completa (providers y router reales) y cubre inicio sin errores de composición, catálogo visible, persistencia del carrito al remontar, checkout autenticado y redirección de visitantes al login.
+
+Verificación ejecutada (real):
+
+| Comando | Resultado |
+|---|---|
+| `cd backend && npm test` | 4 suites, 127/127 tests |
+| `cd client && npm test` | 12 archivos, 86/86 tests |
+| `cd client && npm run lint` | 0 errores, 2 warnings conocidos (`App.jsx:256`, `MisPedidos.jsx:41`) |
+| `cd client && npm run build` | OK, 51 módulos |
+
+Commit de la corrección: `88eb1a8`, publicado en `origin/MuebleriaJota_v4-Sprint-7/8`. Sin despliegue ni cambios en Render, Vercel o Atlas; la Fase 7 sigue pendiente.
+
+### Cómo actualizar esta sección
+
+Al terminar una fase:
+
+1. Ejecutar los comandos de verificación correspondientes y copiar el resultado real.
+2. Actualizar la fila de la fase con estado, evidencia y commits.
+3. Si hay tests fallidos o puntos sin resolver, mantener la fase como **En curso** y detallar el bloqueo.
+4. Commitear y pushear la actualización junto con los cambios de la fase.

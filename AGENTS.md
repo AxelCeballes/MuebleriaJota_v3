@@ -6,7 +6,7 @@ Mueblería Jota es una tienda web MERN. El frontend está hecho con React, Vite 
 
 ## Estructura
 
-- `client/src/App.jsx`: rutas, carga de productos y composición de providers.
+- `client/src/App.jsx`: rutas, carga de productos (`AppCatalogo`) y composición de providers (`CartProvider` envuelve a `AppContent`).
 - `client/src/context/`: `AuthContext` y `CartContext` (los objetos context van en archivos separados).
 - `client/src/hooks/`: `useAuth`, `useCart` y `useCheckout`.
 - `client/src/services/checkout.js`: POST a `/api/pedidos` con Bearer e `Idempotency-Key`.
@@ -46,7 +46,7 @@ Para verificar ambos proyectos:
 
 ```sh
 cd backend && npm test     # Jest + MongoMemoryReplSet: 4 suites, 127 tests
-cd client && npm test      # Vitest: 11 archivos, 79 tests
+cd client && npm test      # Vitest: 12 archivos, 86 tests
 cd client && npm run lint  # oxlint: 0 errores, 2 warnings conocidos
 cd client && npm run build # genera dist/
 ```
@@ -74,7 +74,8 @@ cd client && npm run build # genera dist/
 
 - Rutas principales: `/`, `/productos`, `/productos/:id`, `/contacto`, `/carrito`, `/login`, `/registro`, `/perfil`, `/mis-pedidos` y `/admin/crear-producto`.
 - `/admin/crear-producto` está detrás de `ProtectedRoute roles={['admin']}`. Las escrituras admin envían `Authorization: Bearer <token>`; la interfaz valida, pero la API es la única fuente de verdad.
-- `AuthContext` guarda el JWT en `localStorage` (`auth_token`) y lo valida con `/api/auth/me` al recargar. Tiempo de espera de sesión y redirección con retorno al destino: no lo rompas.
+- `AuthContext` guarda el JWT en `localStorage` (`auth_token`) y lo valida con `/api/auth/me` al recargar. Un `401`/4xx descarta la sesión; un `5xx` o fallo de red conserva el token, no expone `usuario` sin validar y habilita `reintentarRestauracion()`. `ProtectedRoute` muestra ese reintento en lugar de redirigir al login. Tiempo de espera de sesión y redirección con retorno al destino: no lo rompas.
+- La composición de `App` es `AuthProvider` → `BrowserRouter` → `AppCatalogo` (catálogo) → `CartProvider` → `AppContent`. No llames `useCart`/`useCheckout` por encima o fuera de sus providers; `App.test.jsx` cubre la integración completa.
 - El carrito se conserva en `localStorage` (`carrito`, ids de producto). `useCheckout` envía ids/cantidades con Bearer e `Idempotency-Key`; vacía el carrito **sólo** con pedido confirmado. No es una pasarela de pagos.
 - Usa `resolverImagenUrl` para mostrar imágenes. Convierte las rutas `/api/imagenes/...` a la URL de API configurada; respeta rutas estáticas existentes bajo `/img`.
 - Mantén el estilo existente y las variables CSS de `client/src/index.css`. Usa componentes y hooks funcionales, nombres descriptivos en el idioma predominante del archivo y mensajes visibles en español.

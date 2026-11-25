@@ -160,8 +160,8 @@ npm run test:watch
 ```
 
 **Resultado de ejecución verificado (Sprint 8)**:
-- **11 archivos de prueba**, **79 tests exitosos** de 79 totales. Sin suites fallidas ni omitidas.
-- **Cobertura**: stock y utilidades, carrito y checkout, contextos de autenticación y carrito, `ProtectedRoute`, login/registro, navbar condicional, historial de pedidos y administración.
+- **12 archivos de prueba**, **86 tests exitosos** de 86 totales. Sin suites fallidas ni omitidas.
+- **Cobertura**: stock y utilidades, carrito y checkout, contextos de autenticación y carrito, `ProtectedRoute`, login/registro, navbar condicional, historial de pedidos, administración e integración de `App` con `AuthProvider`, `CartProvider` y router reales (catálogo, carrito persistente, checkout autenticado y redirección de visitantes al login).
 - `npm run lint` termina sin errores (dos advertencias conocidas de `react(set-state-in-effect)` en `App.jsx` y `MisPedidos.jsx`) y `npm run build` genera `dist` correctamente.
 
 ---
@@ -249,8 +249,8 @@ Las rutas protegidas exigen `Authorization: Bearer <token>`. Las de administraci
 
 ## 🔄 Flujo MERN (de la request al pedido)
 
-1. **React (cliente)**: catálogo y carrito viven en `App.jsx` y `CartContext`; `AuthContext` guarda el JWT en `localStorage` (`auth_token`) y lo valida con `GET /api/auth/me` al recargar.
-2. **Rutas protegidas**: `ProtectedRoute` espera la validación de sesión y redirige a `/login` conservando el destino. El navbar muestra enlaces según sesión y rol.
+1. **React (cliente)**: `AppCatalogo` carga el catálogo y envuelve `AppContent` con `CartProvider`, que recibe la lista de productos; dentro de ambos providers vive el router con las páginas. `AuthContext` guarda el JWT en `localStorage` (`auth_token`) y lo valida con `GET /api/auth/me` al recargar: un `401` descarta la sesión; un `5xx` o un fallo de red conserva el token, no muestra usuario sin validar y habilita un reintento.
+2. **Rutas protegidas**: `ProtectedRoute` espera la validación de sesión y redirige a `/login` conservando el destino; si la validación falló por un problema temporal, ofrece REINTENTAR en lugar de cerrar la sesión. El navbar muestra enlaces según sesión y rol.
 3. **API (Express)**: `app.js` aplica CORS (con `Authorization`), limita el JSON a 20 kb y monta `/api/productos`, `/api/imagenes`, `/api/auth` y `/api/pedidos`.
 4. **Autenticación y autorización**: `requireAuth` verifica firma, expiración y existencia del usuario; `requireRole('admin')` protege escrituras de catálogo e imágenes. El `userId` nace del token, nunca del cuerpo.
 5. **Mongoose y Atlas**: los controladores usan los modelos `Product`, `User` y `Order`; las imágenes se guardan en GridFS (`imagenesProductos`).

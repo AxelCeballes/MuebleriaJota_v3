@@ -115,7 +115,7 @@ describe('App con proveedores reales', () => {
     renderApp('/carrito');
 
     // Espera a que /me valide la sesión y el catálogo hidrate el carrito.
-    expect(await screen.findByRole('button', { name: 'Mi perfil' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Menú de cuenta' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Sillón Jota' })).toBeInTheDocument();
 
     await usuario.click(screen.getByRole('button', { name: /COMPRAR/i }));

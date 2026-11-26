@@ -33,22 +33,52 @@ describe('Navbar', () => {
     expect(screen.getByRole('button', { name: 'Ingresar' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Registrarse' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Admin' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Menú de cuenta' })).not.toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
   });
 
-  it('muestra perfil, pedidos y logout para usuarios autenticados', async () => {
+  it('despliega las opciones de cuenta para usuarios autenticados', async () => {
+    const usuario = userEvent.setup();
     localStorage.setItem('auth_token', 'token');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(perfilDe('customer')));
 
     renderNavbar();
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Mi perfil' })).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Mis pedidos' })).toBeInTheDocument();
+    const botonCuenta = await screen.findByRole('button', { name: 'Menú de cuenta' });
+    expect(screen.queryByRole('link', { name: 'Mi perfil' })).not.toBeInTheDocument();
+
+    await usuario.click(botonCuenta);
+
+    expect(screen.getByRole('link', { name: 'Mi perfil' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Mis pedidos' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Admin' })).not.toBeInTheDocument();
+    expect(botonCuenta).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('muestra Admin sólo para administradores y cierra la sesión', async () => {
+  it('cierra el menú de cuenta al tocar fuera o con Escape', async () => {
+    const usuario = userEvent.setup();
+    localStorage.setItem('auth_token', 'token');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(perfilDe('customer')));
+
+    renderNavbar();
+
+    const botonCuenta = await screen.findByRole('button', { name: 'Menú de cuenta' });
+
+    await usuario.click(botonCuenta);
+    expect(screen.getByRole('link', { name: 'Mi perfil' })).toBeInTheDocument();
+
+    await usuario.click(screen.getByAltText('Hermanos Jota'));
+    expect(screen.queryByRole('link', { name: 'Mi perfil' })).not.toBeInTheDocument();
+
+    await usuario.click(botonCuenta);
+    await usuario.keyboard('{Escape}');
+
+    expect(screen.queryByRole('link', { name: 'Mi perfil' })).not.toBeInTheDocument();
+    expect(botonCuenta).toHaveFocus();
+  });
+
+  it('muestra Admin sólo para administradores y cierra la sesión desde el menú', async () => {
     const usuario = userEvent.setup();
     localStorage.setItem('auth_token', 'token');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(perfilDe('admin')));
@@ -56,9 +86,11 @@ describe('Navbar', () => {
     renderNavbar();
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Admin' })).toBeInTheDocument());
+    await usuario.click(screen.getByRole('button', { name: 'Menú de cuenta' }));
     await usuario.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
 
     expect(localStorage.getItem('auth_token')).toBeNull();
     expect(screen.getByRole('button', { name: 'Ingresar' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Menú de cuenta' })).not.toBeInTheDocument();
   });
 });

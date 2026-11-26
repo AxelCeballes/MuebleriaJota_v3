@@ -58,16 +58,30 @@ function Navbar({ cantidadCarrito = 0 }) {
         </Link>
 
         <div className="header-actions">
-          <Link
-            to="/carrito"
-            role="button"
-            className="cart-link"
-            aria-label="Ver carrito de compras"
-            onClick={cerrarMenus}
-          >
-            <img src="/img/logo-compras.png" alt="Carrito de compras" className="cart-icon" />
-            <span id="cart-count" className="cart-badge">{cantidadCarrito}</span>
-          </Link>
+          {!usuario && (
+            <div className="nav-auth">
+              <NavLink
+                to="/login"
+                role="button"
+                className={({ isActive }) =>
+                  `nav-auth-link nav-auth-secondary${isActive ? ' active' : ''}`
+                }
+                onClick={cerrarMenus}
+              >
+                Ingresar
+              </NavLink>
+              <NavLink
+                to="/registro"
+                role="button"
+                className={({ isActive }) =>
+                  `nav-auth-link nav-auth-primary${isActive ? ' active' : ''}`
+                }
+                onClick={cerrarMenus}
+              >
+                Registrarse
+              </NavLink>
+            </div>
+          )}
 
           {usuario && (
             <div className="account" ref={cuentaRef}>
@@ -143,6 +157,17 @@ function Navbar({ cantidadCarrito = 0 }) {
             <span />
             <span />
           </button>
+
+          <Link
+            to="/carrito"
+            role="button"
+            className="cart-link"
+            aria-label="Ver carrito de compras"
+            onClick={cerrarMenus}
+          >
+            <img src="/img/logo-compras.png" alt="Carrito de compras" className="cart-icon" />
+            <span id="cart-count" className="cart-badge">{cantidadCarrito}</span>
+          </Link>
         </div>
       </div>
 
@@ -183,27 +208,6 @@ function Navbar({ cantidadCarrito = 0 }) {
           >
             Admin
           </NavLink>
-        )}
-
-        {!usuario && (
-          <>
-            <NavLink
-              to="/login"
-              role="button"
-              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-              onClick={cerrarMenus}
-            >
-              Ingresar
-            </NavLink>
-            <NavLink
-              to="/registro"
-              role="button"
-              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-              onClick={cerrarMenus}
-            >
-              Registrarse
-            </NavLink>
-          </>
         )}
       </nav>
     </header>

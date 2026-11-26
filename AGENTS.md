@@ -22,7 +22,9 @@ Mueblería Jota es una tienda web MERN. El frontend está hecho con React, Vite 
 - `backend/routes/`: `/api/productos`, `/api/imagenes`, `/api/auth` y `/api/pedidos`.
 - `backend/middleware/`: JWT/roles y carga de imágenes.
 - `backend/services/imageStorage.js`: acceso al bucket GridFS `imagenesProductos`.
-- `backend/scripts/`: migración de catálogo y `promoteAdmin.js` (primer administrador).
+- `backend/services/productSeed.js`: importación idempotente del catálogo heredado.
+- `backend/data/productosLegado.js`: los 11 productos originales de MuebleriaJota_v2.
+- `backend/scripts/`: `migrateProductos.js` (importación manual del catálogo) y `promoteAdmin.js` (primer administrador).
 
 No hay `package.json` en la raíz. El cliente y el backend tienen dependencias y comandos independientes.
 
@@ -45,8 +47,8 @@ npm run dev
 Para verificar ambos proyectos:
 
 ```sh
-cd backend && npm test     # Jest + MongoMemoryReplSet: 4 suites, 127 tests
-cd client && npm test      # Vitest: 12 archivos, 86 tests
+cd backend && npm test     # Jest + MongoMemoryReplSet: 6 suites, 137 tests
+cd client && npm test      # Vitest: 12 archivos, 87 tests
 cd client && npm run lint  # oxlint: 0 errores, 2 warnings conocidos
 cd client && npm run build # genera dist/
 ```
@@ -69,6 +71,7 @@ cd client && npm run build # genera dist/
 - `/api/pedidos`: `POST` y `GET /mis-pedidos` exigen `Bearer`. El cliente envía ids y cantidades; el servidor calcula precios/total, valida stock y guarda el snapshot del producto.
 - Las imágenes nuevas se guardan en GridFS `imagenesProductos`; `imagenUrl` conserva `/api/imagenes/<ObjectId>`. No guardes archivos subidos en disco local.
 - El modelo `Product` usa `nombre`, `descripcion`, `precio`, `stock`, `imagenUrl`, `categoria`, `especificaciones` y `destacado`. No lo renombres ni lo reemplaces: `User` y `Order` son modelos nuevos y separados.
+- `scripts/migrateProductos.js` importa los 11 productos de `data/productosLegado.js` usando el nombre exacto como clave (idempotente: actualiza, no duplica), sube las imágenes de `client/public/img` a GridFS y conserva el stock existente salvo que se pase `--stock`/`STOCK_INICIAL`. Es manual: nunca lo ejecutes automáticamente ni contra una base sin confirmación.
 
 ## Frontend y convenciones
 

@@ -115,6 +115,16 @@ Vite reenvía las solicitudes `/api` al backend local. Para apuntar a otra API, 
 | `client` | `npm test` | Ejecuta los tests del cliente con Vitest |
 | `client` | `npm run test:watch` | Ejecuta los tests del cliente en modo interactivo |
 
+Además, desde `backend` con `MONGODB_URI` configurada:
+
+| Comando | Qué hace |
+|---|---|
+| `node scripts/migrateProductos.js --dry-run` | Simula la importación del catálogo heredado sin escribir en MongoDB |
+| `node scripts/migrateProductos.js` | Importa o actualiza los 11 productos heredados (idempotente) |
+| `node scripts/promoteAdmin.js <email>` | Promueve a `admin` un usuario ya registrado |
+
+La importación del catálogo se explica en detalle más abajo.
+
 ---
 
 ## 🧪 Testing
@@ -138,8 +148,8 @@ npm run test:watch
 ```
 
 **Resultado de ejecución verificado (Sprint 8)**:
-- **4 suites aprobadas**, **127 tests exitosos** de 127 totales.
-- **Cobertura**: CRUD de productos y GridFS, registro/login/perfil con bcrypt y JWT, roles `customer`/`admin`, protección de escrituras (`401`/`403`), pedidos con precios calculados en servidor, stock atómico, idempotencia y aislamiento por usuario. Las transacciones se prueban con `MongoMemoryReplSet`; nunca se conecta a Atlas ni a producción.
+- **6 suites aprobadas**, **137 tests exitosos** de 137 totales.
+- **Cobertura**: CRUD de productos y GridFS, importación idempotente del catálogo heredado, CORS y preflight (`Idempotency-Key`), registro/login/perfil con bcrypt y JWT, roles `customer`/`admin`, protección de escrituras (`401`/`403`), pedidos con precios calculados en servidor, stock atómico, idempotencia y aislamiento por usuario. Las transacciones se prueban con `MongoMemoryReplSet`; nunca se conecta a Atlas ni a producción.
 
 ### Frontend
 
@@ -160,7 +170,7 @@ npm run test:watch
 ```
 
 **Resultado de ejecución verificado (Sprint 8)**:
-- **12 archivos de prueba**, **86 tests exitosos** de 86 totales. Sin suites fallidas ni omitidas.
+- **12 archivos de prueba**, **87 tests exitosos** de 87 totales. Sin suites fallidas ni omitidas.
 - **Cobertura**: stock y utilidades, carrito y checkout, contextos de autenticación y carrito, `ProtectedRoute`, login/registro, navbar condicional, historial de pedidos, administración e integración de `App` con `AuthProvider`, `CartProvider` y router reales (catálogo, carrito persistente, checkout autenticado y redirección de visitantes al login).
 - `npm run lint` termina sin errores (dos advertencias conocidas de `react(set-state-in-effect)` en `App.jsx` y `MisPedidos.jsx`) y `npm run build` genera `dist` correctamente.
 
@@ -251,7 +261,7 @@ Las rutas protegidas exigen `Authorization: Bearer <token>`. Las de administraci
 
 1. **React (cliente)**: `AppCatalogo` carga el catálogo y envuelve `AppContent` con `CartProvider`, que recibe la lista de productos; dentro de ambos providers vive el router con las páginas. `AuthContext` guarda el JWT en `localStorage` (`auth_token`) y lo valida con `GET /api/auth/me` al recargar: un `401` descarta la sesión; un `5xx` o un fallo de red conserva el token, no muestra usuario sin validar y habilita un reintento.
 2. **Rutas protegidas**: `ProtectedRoute` espera la validación de sesión y redirige a `/login` conservando el destino; si la validación falló por un problema temporal, ofrece REINTENTAR en lugar de cerrar la sesión. El navbar muestra enlaces según sesión y rol.
-3. **API (Express)**: `app.js` aplica CORS (con `Authorization`), limita el JSON a 20 kb y monta `/api/productos`, `/api/imagenes`, `/api/auth` y `/api/pedidos`.
+3. **API (Express)**: `app.js` aplica CORS con `Content-Type`, `Authorization` e `Idempotency-Key`, limita el JSON a 20 kb y monta `/api/productos`, `/api/imagenes`, `/api/auth` y `/api/pedidos`.
 4. **Autenticación y autorización**: `requireAuth` verifica firma, expiración y existencia del usuario; `requireRole('admin')` protege escrituras de catálogo e imágenes. El `userId` nace del token, nunca del cuerpo.
 5. **Mongoose y Atlas**: los controladores usan los modelos `Product`, `User` y `Order`; las imágenes se guardan en GridFS (`imagenesProductos`).
 6. **Checkout**: el cliente envía ids y cantidades con Bearer e `Idempotency-Key`; el servidor recarga los productos, calcula precios y total, descuenta stock dentro de una transacción y guarda un snapshot en `Order`.
@@ -274,6 +284,39 @@ node scripts/promoteAdmin.js email-del-usuario@example.com
 ```
 
 No hay campo de rol libre en el formulario de registro.
+
+### Importar el catálogo heredado
+
+Los 11 productos de [MuebleriaJota_v2](https://github.com/AxelCeballes/MuebleriaJota_v2) se importan con `backend/scripts/migrateProductos.js`. Los datos originales (`nombre`, `descripcion`, `precio`, `categoria`, `especificaciones` y `destacado`) están en `backend/data/productosLegado.js` y se conservan exactamente.
+
+El script:
+
+- sube cada imagen desde `client/public/img` al bucket GridFS `imagenesProductos` y guarda `imagenUrl` como `/api/imagenes/<id>`, igual que la administración; no deja rutas locales en la base;
+- usa el **nombre exacto** como clave estable: si el producto ya existe, actualiza sus datos en lugar de duplicarlo y conserva su imagen si ya es una imagen válida de GridFS;
+- asigna **stock 0** a los productos nuevos por defecto, sin inventar cantidades;
+- no elimina ni modifica usuarios, pedidos ni productos ajenos a la importación;
+- informa al final cuántos productos insertó, actualizó, omitió y cuántos existen en total.
+
+Ejecutarla manualmente, con `MONGODB_URI` apuntando a la base correcta. Primero conviene simular:
+
+```bash
+cd backend
+node scripts/migrateProductos.js --dry-run
+node scripts/migrateProductos.js
+```
+
+El script toma `MONGODB_URI` de `backend/.env` o de la variable de entorno de la terminal e imprime el host y la base de destino al conectarse. Verificá ahí que sea el cluster de Sprint 8 antes de confirmar la escritura.
+
+Opciones disponibles:
+
+| Opción | Descripción |
+|---|---|
+| `--dry-run` | Muestra qué haría sin escribir en MongoDB |
+| `--stock=N` o `STOCK_INICIAL=N` | Stock inicial entero `>= 0` (por defecto `0`). Si se indica, también se aplica a los productos heredados que ya existan |
+| `--imagenes-dir=RUTA` | Carpeta alternativa con las imágenes de origen (por defecto `client/public/img`) |
+| `-h`, `--help` | Muestra la ayuda |
+
+Sin `--stock`/`STOCK_INICIAL`, el stock de los productos existentes se conserva en las reejecuciones. La importación nunca se ejecuta automáticamente al desplegar ni al iniciar la API: es un paso manual.
 
 ---
 
@@ -311,11 +354,12 @@ MuebleriaJota_v3/
 │   ├── index.js                  # Validación de auth, MongoDB y servidor
 │   ├── config/                   # Base de datos, CORS y variables de JWT/bcrypt
 │   ├── controllers/              # Productos, imágenes, auth y pedidos
+│   ├── data/                     # Catálogo heredado de MuebleriaJota_v2
 │   ├── middleware/               # JWT, roles y carga de imágenes
 │   ├── models/                   # Product, User y Order
 │   ├── routes/                   # /api/productos, /imagenes, /auth y /pedidos
-│   ├── scripts/                  # Migración de productos y promoción a admin
-│   ├── services/                 # Almacenamiento GridFS
+│   ├── scripts/                  # Importación del catálogo y promoción a admin
+│   ├── services/                 # GridFS e importación idempotente del catálogo
 │   └── tests/                    # Suites Jest con MongoMemoryReplSet
 └── client/
     ├── public/img/               # Imágenes y logos

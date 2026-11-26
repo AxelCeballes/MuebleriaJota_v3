@@ -45,6 +45,35 @@ const serializarPedido = (pedido) => ({
   updatedAt: pedido.updatedAt,
 });
 
+const serializarPedidoAdmin = (pedido) => {
+  const usuario = pedido.usuario && typeof pedido.usuario === 'object' && pedido.usuario._id
+    ? {
+        id: pedido.usuario._id.toString(),
+        nombre: pedido.usuario.nombre,
+        email: pedido.usuario.email,
+      }
+    : {
+        id: pedido.usuario?.toString?.() ?? '',
+        nombre: 'Cliente no disponible',
+        email: '',
+      };
+
+  return {
+    _id: pedido._id.toString(),
+    usuario,
+    items: pedido.items.map((item) => ({
+      producto: item.producto.toString(),
+      nombre: item.nombre,
+      precioUnitario: item.precioUnitario,
+      cantidad: item.cantidad,
+    })),
+    total: pedido.total,
+    estado: pedido.estado,
+    createdAt: pedido.createdAt,
+    updatedAt: pedido.updatedAt,
+  };
+};
+
 const validarItems = (items) => {
   const errores = [];
   const normalizados = [];
@@ -305,7 +334,16 @@ const obtenerMisPedidos = asyncHandler(async (request, response) => {
   return response.status(200).json(pedidos.map(serializarPedido));
 });
 
+const obtenerPedidosAdmin = asyncHandler(async (request, response) => {
+  const pedidos = await Order.find()
+    .populate('usuario', 'nombre email')
+    .sort({ createdAt: -1, _id: -1 });
+
+  return response.status(200).json(pedidos.map(serializarPedidoAdmin));
+});
+
 module.exports = {
   crearPedido,
   obtenerMisPedidos,
+  obtenerPedidosAdmin,
 };

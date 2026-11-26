@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Order = require('../models/Order');
 const {
   obtenerJwtSecret,
   obtenerExpiracionJwt,
@@ -167,8 +168,42 @@ const obtenerPerfil = asyncHandler(async (request, response) => {
   response.status(200).json({ usuario: request.user });
 });
 
+const listarClientes = asyncHandler(async (request, response) => {
+  const clientes = await User.aggregate([
+    { $match: { rol: 'customer' } },
+    {
+      $lookup: {
+        from: Order.collection.name,
+        localField: '_id',
+        foreignField: 'usuario',
+        as: 'pedidos',
+      },
+    },
+    {
+      $project: {
+        nombre: 1,
+        email: 1,
+        createdAt: 1,
+        totalPedidos: { $size: '$pedidos' },
+      },
+    },
+    { $sort: { createdAt: -1, _id: -1 } },
+  ]);
+
+  return response.status(200).json(
+    clientes.map((cliente) => ({
+      id: cliente._id.toString(),
+      nombre: cliente.nombre,
+      email: cliente.email,
+      createdAt: cliente.createdAt,
+      totalPedidos: cliente.totalPedidos,
+    })),
+  );
+});
+
 module.exports = {
   registrarUsuario,
   iniciarSesion,
   obtenerPerfil,
+  listarClientes,
 };

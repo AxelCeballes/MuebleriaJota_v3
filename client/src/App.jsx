@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter, Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProductList from './components/ProductList';
@@ -9,6 +9,11 @@ import Cart from './components/Cart';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminGestion from './pages/AdminGestion';
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminInicio from './pages/admin/AdminInicio';
+import AdminPedidos from './pages/admin/AdminPedidos';
+import AdminClientes from './pages/admin/AdminClientes';
+import AdminPerfil from './pages/admin/AdminPerfil';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import Registro from './pages/Registro';
@@ -378,10 +383,27 @@ function AppContent({
             }
           />
           <Route
+            path="/admin"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminInicio />} />
+            <Route path="pedidos" element={<AdminPedidos />} />
+            <Route
+              path="productos"
+              element={<AdminGestion onProductoGuardado={onProductoCreado} />}
+            />
+            <Route path="clientes" element={<AdminClientes />} />
+            <Route path="perfil" element={<AdminPerfil />} />
+          </Route>
+          <Route
             path="/admin/crear-producto"
             element={
               <ProtectedRoute roles={['admin']}>
-                <AdminGestion onProductoGuardado={onProductoCreado} />
+                <Navigate to="/admin/productos" replace />
               </ProtectedRoute>
             }
           />

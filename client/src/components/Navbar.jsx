@@ -98,15 +98,33 @@ function Navbar({ cantidadCarrito = 0 }) {
                   setMenuAbierto(false);
                 }}
               >
+                <span className="account-avatar" aria-hidden="true">
+                  <svg
+                    className="account-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.42 0-8 2.24-8 5v2h16v-2c0-2.76-3.58-5-8-5Z"
+                    />
+                  </svg>
+                </span>
+                <span className="account-label">Mi cuenta</span>
                 <svg
-                  className="account-icon"
+                  className="account-chevron"
                   viewBox="0 0 24 24"
                   aria-hidden="true"
                   focusable="false"
                 >
                   <path
-                    fill="currentColor"
-                    d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.42 0-8 2.24-8 5v2h16v-2c0-2.76-3.58-5-8-5Z"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m6 9 6 6 6-6"
                   />
                 </svg>
               </button>
@@ -131,6 +149,20 @@ function Navbar({ cantidadCarrito = 0 }) {
                   >
                     Mis pedidos
                   </NavLink>
+                  {esAdmin && (
+                    <>
+                      <span className="account-menu-separator" role="presentation" />
+                      <NavLink
+                        to="/admin"
+                        className={({ isActive }) =>
+                          `account-menu-item${isActive ? ' active' : ''}`
+                        }
+                        onClick={cerrarMenus}
+                      >
+                        Panel de administración
+                      </NavLink>
+                    </>
+                  )}
                   <button
                     type="button"
                     className="account-menu-item account-menu-logout"
@@ -201,7 +233,7 @@ function Navbar({ cantidadCarrito = 0 }) {
 
         {esAdmin && (
           <NavLink
-            to="/admin/crear-producto"
+            to="/admin"
             role="button"
             className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
             onClick={cerrarMenus}

@@ -101,6 +101,7 @@ async function importarProductosLegado({
         descripcion: producto.descripcion,
         precio: producto.precio,
         categoria: producto.categoria,
+        ambiente: producto.ambiente || '',
         especificaciones: normalizarEspecificaciones(producto.especificaciones),
         destacado: producto.destacado,
       };

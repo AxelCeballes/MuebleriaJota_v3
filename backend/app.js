@@ -7,6 +7,7 @@ const productRoutes = require('./routes/productRoutes');
 const imageRoutes = require('./routes/imageRoutes');
 const authRoutes = require('./routes/authRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/imagenes', imageRoutes);
 app.use('/api/productos', productRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/pedidos', orderRoutes);
+app.use('/api/resenas', reviewRoutes);
 
 app.use((request, response) => {
   response.status(404).json({

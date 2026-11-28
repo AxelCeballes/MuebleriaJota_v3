@@ -54,6 +54,13 @@ const productSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    ambiente: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    ratingAverage: { type: Number, min: 0, max: 5, default: 0 },
+    ratingCount: { type: Number, min: 0, default: 0 },
     especificaciones: {
       type: [especificacionSchema],
       default: undefined,

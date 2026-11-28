@@ -9,6 +9,7 @@ const ALLOWED_FIELDS = [
   'stock',
   'imagenUrl',
   'categoria',
+  'ambiente',
   'especificaciones',
   'destacado',
 ];
@@ -55,6 +56,7 @@ const createProduct = asyncHandler(async (request, response) => {
     stock,
     imagenUrl,
     categoria,
+    ambiente,
     especificaciones,
     destacado,
   } = body;
@@ -66,6 +68,7 @@ const createProduct = asyncHandler(async (request, response) => {
     stock,
     imagenUrl,
     categoria,
+    ambiente,
     especificaciones,
     destacado,
   });

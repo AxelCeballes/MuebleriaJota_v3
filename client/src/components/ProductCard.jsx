@@ -8,7 +8,7 @@ function ProductCard({ producto, onSelect, onAddToCart }) {
 
   if (!producto) return null;
 
-  const { _id, nombre, precio, categoria, imagenUrl } = producto;
+  const { _id, nombre, precio, categoria, imagenUrl, ratingAverage = 0, ratingCount = 0 } = producto;
   const imageSrc = resolverImagenUrl(imagenUrl);
 
   const handleCardClick = () => {
@@ -51,6 +51,7 @@ function ProductCard({ producto, onSelect, onAddToCart }) {
         <div className="product-info">
           <p className="category">{categoria}</p>
           <h3>{nombre}</h3>
+          {ratingCount > 0 && <p className="card-rating"><span aria-label={`${ratingAverage} de 5 estrellas`}>★</span> {Number(ratingAverage).toFixed(1)} <small>({ratingCount})</small></p>}
           <p className="price">{formatoPrecio(precio)}</p>
         </div>
       </div>

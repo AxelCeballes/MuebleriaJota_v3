@@ -9,6 +9,7 @@ const productos = [
     nombre: "Aparador Uspallata",
     precio: 620000,
     categoria: "Aparadores",
+    ambiente: "Living",
     imagenArchivo: "Aparador Uspallata.png",
     descripcion: "Aparador bajo de líneas rectas en roble macizo con puertas abatibles y patas cónicas de madera torneada. Su interior cuenta con estantes regulables, ideal para living o comedor, combinando guardado funcional con una estética cálida y atemporal.",
     especificaciones: [
@@ -24,6 +25,7 @@ const productos = [
     nombre: "Biblioteca Recoleta",
     precio: 410000,
     categoria: "Bibliotecas",
+    ambiente: "Living",
     imagenArchivo: "Biblioteca Recoleta.png",
     descripcion: "Biblioteca modular de piso a techo en madera de pino reforestado, con estantes ajustables y estructura autoportante. Su diseño esbelto aprovecha el espacio vertical, ideal para living o estudio, ofreciendo capacidad de guardado sin sobrecargar el ambiente.",
     especificaciones: [
@@ -39,6 +41,7 @@ const productos = [
     nombre: "Butaca Mendoza",
     precio: 380000,
     categoria: "Sillones",
+    ambiente: "Living",
     imagenArchivo: "Butaca Mendoza.png",
     descripcion: "Butaca individual tapizada en pana color terracota, con estructura de madera de haya y patas cónicas. Su tamaño compacto y silueta redondeada la convierten en una pieza versátil para living, dormitorio o rincones de lectura.",
     especificaciones: [
@@ -54,6 +57,7 @@ const productos = [
     nombre: "Sillón Copacabana",
     precio: 650000,
     categoria: "Sillones",
+    ambiente: "Living",
     imagenArchivo: "Sillón Copacabana.png",
     descripcion: "Sillón de dos cuerpos tapizado en bouclé color crudo, con base de madera curva y patas doradas. Su perfil curvo y mullido aporta calidez y un toque escultórico a cualquier living, combinando confort y diseño contemporáneo.",
     especificaciones: [
@@ -69,6 +73,7 @@ const productos = [
     nombre: "Mesa de Centro Araucaria",
     precio: 290000,
     categoria: "Mesas",
+    ambiente: "Living",
     imagenArchivo: "Mesa de Centro Araucaria.png",
     descripcion: "Mesa de centro con tablero circular en madera de araucaria y base trípode de metal negro. Su silueta liviana y natural se adapta a distintos estilos de living, funcionando como punto focal cálido frente al sofá.",
     especificaciones: [
@@ -84,6 +89,7 @@ const productos = [
     nombre: "Mesa de Noche Aconcagua",
     precio: 210000,
     categoria: "Mesas",
+    ambiente: "Dormitorio",
     imagenArchivo: "Mesa de Noche Aconcagua.png",
     descripcion: "Mesa de noche con cajón oculto y repisa inferior en roble certificado FSC®. Su diseño limpio y funcional permite convivir con diferentes estilos de dormitorio, ofreciendo almacenamiento discreto y elegante para objetos personales.",
     especificaciones: [
@@ -99,6 +105,7 @@ const productos = [
     nombre: "Sofá Patagonia",
     precio: 890000,
     categoria: "Sillones",
+    ambiente: "Living",
     imagenArchivo: "Sofá Patagonia.png",
     descripcion: "Sofá de tres cuerpos tapizado en lino Warm Alabaster con patas cónicas de madera. Los cojines combinan espuma de alta resiliencia con plumón reciclado, ofreciendo comodidad duradera y sostenible para el hogar moderno.",
     especificaciones: [
@@ -114,6 +121,7 @@ const productos = [
     nombre: "Mesa Comedor Pampa",
     precio: 780000,
     categoria: "Mesas",
+    ambiente: "Comedor",
     imagenArchivo: "Mesa Comedor Pampa.png",
     descripcion: "Mesa extensible de roble macizo con tablero biselado y sistema de apertura suave. Su diseño robusto y elegante se adapta perfectamente a reuniones íntimas o grandes celebraciones familiares, extendiéndose de 6 a 10 comensales.",
     especificaciones: [
@@ -129,6 +137,7 @@ const productos = [
     nombre: "Sillas Córdoba",
     precio: 320000,
     categoria: "Sillas",
+    ambiente: "Comedor",
     imagenArchivo: "Sillas Córdoba.png",
     descripcion: "Set de cuatro sillas apilables en contrachapado moldeado de nogal y estructura tubular pintada en Sage Green. Su diseño ergonómico y materiales de calidad garantizan comodidad y durabilidad en el uso diario, perfectas para comedores contemporáneos.",
     especificaciones: [
@@ -144,6 +153,7 @@ const productos = [
     nombre: "Escritorio Costa",
     precio: 340000,
     categoria: "Escritorios",
+    ambiente: "Oficina",
     imagenArchivo: "Escritorio Costa.png",
     descripcion: "Escritorio compacto con cajón organizado y tapa pasacables integrada en bambú laminado. Ideal para espacios de trabajo en casa, combina funcionalidad moderna con estética minimalista y sostenible, perfecto para el trabajo remoto.",
     especificaciones: [
@@ -159,6 +169,7 @@ const productos = [
     nombre: "Silla de Trabajo Belgrano",
     precio: 275000,
     categoria: "Sillas",
+    ambiente: "Oficina",
     imagenArchivo: "Silla de Trabajo Belgrano.png",
     descripcion: "Silla ergonómica regulable en altura con respaldo de malla transpirable y asiento tapizado en tejido reciclado. Diseñada para largas jornadas de trabajo con máximo confort y apoyo lumbar, ideal para oficinas en casa y espacios de coworking.",
     especificaciones: [

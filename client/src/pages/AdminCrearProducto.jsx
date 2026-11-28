@@ -7,8 +7,14 @@ import { useAuth } from '../hooks/useAuth';
 const categorias = [
   'Aparadores',
   'Bibliotecas',
+  'Camas',
+  'Cómodas',
   'Escritorios',
   'Mesas',
+  'Mesas de centro',
+  'Mesas de luz',
+  'Muebles de TV',
+  'Placares',
   'Sillas',
   'Sillones',
 ];
@@ -20,6 +26,7 @@ const formularioInicial = {
   stock: '',
   imagenUrl: '',
   categoria: '',
+  ambiente: '',
   destacado: false,
 };
 
@@ -41,6 +48,7 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
     stock: String(initialProduct.stock ?? 0),
     imagenUrl: initialProduct.imagenUrl || '',
     categoria: initialProduct.categoria || '',
+    ambiente: initialProduct.ambiente || '',
     destacado: Boolean(initialProduct.destacado),
   } : formularioInicial);
   const [especificaciones, setEspecificaciones] = useState(() => initialProduct?.especificaciones || []);
@@ -246,6 +254,7 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
       stock: valoresValidados.stock,
       imagenUrl: formData.imagenUrl.trim(),
       destacado: formData.destacado,
+      ambiente: formData.ambiente.trim(),
     };
 
     if (formData.categoria.trim()) {
@@ -408,7 +417,7 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
             </div>
           </div>
 
-          <label htmlFor="categoria">Categoría</label>
+          <label htmlFor="categoria">Tipo de mueble</label>
           <select
             id="categoria"
             name="categoria"
@@ -420,6 +429,12 @@ function AdminCrearProducto({ onProductoGuardado, onCancelar, initialProduct }) 
             {categorias.map((categoria) => (
               <option key={categoria} value={categoria}>{categoria}</option>
             ))}
+          </select>
+
+          <label htmlFor="ambiente">Ambiente</label>
+          <select id="ambiente" name="ambiente" value={formData.ambiente} onChange={handleChange} disabled={enviando}>
+            <option value="">Sin especificar</option>
+            {['Comedor', 'Dormitorio', 'Living', 'Cocina', 'Oficina', 'Exterior', 'Recibidor'].map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
 
           <label htmlFor="imagenArchivo">Imagen del producto</label>

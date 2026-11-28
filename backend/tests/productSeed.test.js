@@ -39,6 +39,7 @@ describe('importación del catálogo heredado', () => {
       expect(guardado.descripcion).toBe(heredado.descripcion);
       expect(guardado.precio).toBe(heredado.precio);
       expect(guardado.categoria).toBe(heredado.categoria);
+      expect(guardado.ambiente).toBe(heredado.ambiente);
       expect(guardado.especificaciones).toEqual(heredado.especificaciones);
       expect(guardado.destacado).toBe(heredado.destacado);
       expect(guardado.stock).toBe(0);
@@ -116,6 +117,7 @@ describe('importación del catálogo heredado', () => {
     expect(await Product.countDocuments({ nombre: 'Aparador Uspallata' })).toBe(1);
     expect(actualizado.descripcion).toBe(heredado.descripcion);
     expect(actualizado.precio).toBe(heredado.precio);
+    expect(actualizado.ambiente).toBe(heredado.ambiente);
     expect(actualizado.especificaciones).toEqual(heredado.especificaciones);
     expect(actualizado.stock).toBe(7);
     expect(actualizado.imagenUrl).toMatch(/^\/api\/imagenes\/[a-f0-9]{24}$/);

@@ -55,6 +55,7 @@ function HomePage({ productos, onAddToCart, onSelectProduct, cargando, error, on
           onSelectProduct={onSelectProduct}
           onAddToCart={onAddToCart}
           mostrarBuscador={false}
+          modoCarrusel={true}
           cargando={cargando}
           error={error}
           onReintentar={onReintentar}
@@ -216,6 +217,9 @@ const normalizarProducto = (producto) => ({
   stock: Number.isFinite(Number(producto.stock)) ? Number(producto.stock) : 0,
   imagenUrl: typeof producto.imagenUrl === 'string' ? producto.imagenUrl : '',
   categoria: typeof producto.categoria === 'string' ? producto.categoria : 'Sin categoría',
+  ambiente: typeof producto.ambiente === 'string' ? producto.ambiente : '',
+  ratingAverage: Number(producto.ratingAverage) || 0,
+  ratingCount: Number(producto.ratingCount) || 0,
   especificaciones: Array.isArray(producto.especificaciones) ? producto.especificaciones : [],
   destacado: Boolean(producto.destacado),
 });
